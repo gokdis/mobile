@@ -1,4 +1,5 @@
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'dart:math';
 //import 'package:simple_kalman/simple_kalman.dart';
 
 class BLEScanner {
@@ -8,7 +9,7 @@ class BLEScanner {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
-        withKeywords: ['10001'],
+        withKeywords: ['10000','10001'],
         continuousUpdates: true,
       );
     } catch (e) {
@@ -77,6 +78,9 @@ class BLEScanner {
         deviceRssiValues[deviceId]!.add(result.rssi);
         print('rssi: ${result.rssi}');
 
+        double distance = getDistance(result.rssi.toDouble());
+        print('Distance: $distance m');
+
         if (deviceRssiValues[deviceId]!.length == 10) {
           List<int> _sortedValues = deviceRssiValues[deviceId]!..sort();
 
@@ -111,6 +115,12 @@ class BLEScanner {
           int _sum = deviceRssiValues[deviceId]!.reduce((a, b) => a + b);
           int avg = _sum ~/ deviceRssiValues[deviceId]!.length;
 
+          double _sumDistance = deviceRssiValues[deviceId]!
+            .map((rssi) => getDistance(rssi.toDouble()))
+            .reduce((a, b) => a + b);
+          double avgDistance = _sumDistance / deviceRssiValues[deviceId]!.length;
+          print('Avg Distance for $deviceId: $avgDistance m');
+
           print('Avg rssi for $deviceId: $avg');
 
           deviceRssiValues[deviceId]!.clear();
@@ -122,6 +132,12 @@ class BLEScanner {
       print('Error during scanning: $error');
     });
   }
+
+  double getDistance(double rssi) {
+    double distance = pow(10, ((-65 - rssi) / (10 * 2))) as double;
+    return distance;
+  }
+
 
 /*     void kalman() {
       List<int> rssi = [];
