@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gokdis/ble/map.dart';
 
 class ShoppingListWidget extends StatefulWidget {
   @override
@@ -9,15 +10,48 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
   TextEditingController _itemController = TextEditingController();
   List<String> _items = [];
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Shopping List'),
+        backgroundColor: Color(0xFFFFA500),
       ),
       body: Column(
         children: [
           _buildAddItemField(),
           _buildItemList(),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return BottomAppBar(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: <Widget>[
+          ElevatedButton(
+            onPressed: () {
+              navigateToMap();
+            },
+            child: Icon(Icons.map),
+            style: ElevatedButton.styleFrom(
+              shape: CircleBorder(),
+              padding: EdgeInsets.all(16),
+              backgroundColor: Colors.orange,
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            child: Icon(Icons.campaign),
+            style: ElevatedButton.styleFrom(
+              shape: CircleBorder(),
+              padding: EdgeInsets.all(16),
+              backgroundColor: Colors.orange,
+            ),
+          ),
         ],
       ),
     );
@@ -42,6 +76,9 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
               _addItem();
             },
             child: Text('Add'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
           ),
         ],
       ),
@@ -56,6 +93,15 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
         _itemController.clear();
       });
     }
+  }
+
+  void navigateToMap() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapPage(),
+      ),
+    );
   }
 
   Widget _buildItemList() {
