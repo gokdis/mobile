@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gokdis/user/special_offer.dart';
 import 'package:gokdis/ble/map.dart';
 
 class ShoppingListWidget extends StatefulWidget {
@@ -44,7 +45,9 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              navigateToSpecialOffer();
+            },
             child: Icon(Icons.campaign),
             style: ElevatedButton.styleFrom(
               shape: CircleBorder(),
@@ -100,6 +103,15 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
       context,
       MaterialPageRoute(
         builder: (context) => MapPage(),
+      ),
+    );
+  }
+
+  void navigateToSpecialOffer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SpecialOffer(),
       ),
     );
   }

@@ -2,128 +2,114 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
 //import 'package:simple_kalman/simple_kalman.dart';
 
+class ble {
+  String id;
+  double x;
+  double y;
+  int rssi;
+  double averageRSSI;
+  double distance;
+
+  ble(this.id, this.x, this.y, this.rssi, this.distance, this.averageRSSI);
+
+  double getDistance(double rssi) {
+    double distance = pow(10, ((-65 - rssi) / (10 * 2))) as double;
+    return distance;
+  }
+}
+
 class BLEScanner {
-  Map<String, List<int>> deviceRssiValues = {};
+  Map<ble, List<int>> deviceRssiValues = {};
+  late double distance;
 
   void startScan() async {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
-        withKeywords: ['10000','10001'],
+        withKeywords: ['10002', '10000', '26268'],
         continuousUpdates: true,
+        continuousDivisor: 3,
+        removeIfGone: Duration(minutes: 2),
       );
     } catch (e) {
-      print("error");
+      print("error : $e");
     }
-    //testOutliers();
     getRSSI();
   }
 
-  void testOutliers() {
-    List<int> sortedValues = [-87, -42, -19, -63, -35, -56, -92, -10, -74, -28];
-    sortedValues.sort();
-    print(sortedValues);
+  List<ble> getNearestThreeDevices() {
+    final sortedDevices = deviceRssiValues.keys.toList()
+      ..sort((a, b) => a.distance.compareTo(b.distance));
 
-    int n = sortedValues.length;
-    double index1 = ((n + 1) / 4) - 1;
-    double index2 = ((3 * (n + 1)) / 4) - 1;
-    print(index1.floor()); // .floor() casts 2.5 to 2
-    print(index2.floor());
+    final nearestDevices =
+        sortedDevices.where((device) => device.distance > 0).take(3).toList();
 
-    double q1;
-    if (index1 % 2 == 0) {
-      q1 = sortedValues[index1.toInt()].toDouble();
-    } else {
-      q1 = (((sortedValues[index1.floor()]).toDouble() +
-                  (sortedValues[(index1 + 1).floor()]).toDouble()) /
-              2)
-          .toDouble();
-    }
-    print(q1);
-
-    double q3;
-    if (index2 % 2 == 0) {
-      q3 = sortedValues[index2.toInt()].toDouble();
-    } else {
-      q3 = (((sortedValues[index2.floor()]).toDouble() +
-                  (sortedValues[(index2 + 1).floor()]).toDouble()) /
-              2)
-          .toDouble();
+    print('Nearest 3 BLE devices:');
+    for (final device in nearestDevices) {
+      print('Device ID: ${device.id}, Distance: ${device.distance}');
     }
 
-    print(q3);
-    double iqr = q3 - q1;
-    print(iqr);
+    return nearestDevices;
   }
 
-  /*
-   q1 = (n+1)/4
-   q3 = 3(n+1)/4
-   iqr = q3-q1
-
-   outliers:
-   x > q3 && x < q1
-
-*/
   void getRSSI() {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceId = result.device.remoteId.str;
+        List<ble> nearestDevices;
+
+        ble BLE = deviceRssiValues.keys.firstWhere(
+          (key) => key.id == deviceId,
+          orElse: () => ble(deviceId, 0, 0, 0, -1, 0),
+        );
 
         deviceRssiValues.putIfAbsent(
-            deviceId,
+            BLE,
             () =>
                 []); // initializes an empty list if device does not have rssi value
 
-        deviceRssiValues[deviceId]!.add(result.rssi);
-        print('rssi: ${result.rssi}');
+        //BLE.rssi = result.rssi;
+        deviceRssiValues[BLE]!.add(result.rssi);
+        //  print('rssi: ${result.rssi}');
+        //  print('id : $deviceId');
+        //  print('List : ${deviceRssiValues[BLE]}');
+        if (deviceRssiValues[BLE]!.length == 10) {
+          List<int> _sortedValues = deviceRssiValues[BLE]!..sort();
+          //   print(' sorted values : $_sortedValues');
+          double mean =
+              _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
+          double sumOfSquares = _sortedValues.fold(0, (total, value) {
+            double diff = value - mean;
+            return total + diff * diff;
+          });
+          double stdDev = sqrt(sumOfSquares / _sortedValues.length);
 
-        double distance = getDistance(result.rssi.toDouble());
-        print('Distance: $distance m');
+          double lowerBound = mean - 2 * stdDev;
+          double upperBound = mean + 2 * stdDev;
 
-        if (deviceRssiValues[deviceId]!.length == 10) {
-          List<int> _sortedValues = deviceRssiValues[deviceId]!..sort();
+          _sortedValues.removeWhere(
+              (value) => value < lowerBound || value >= upperBound);
 
-          int _n = _sortedValues.length;
-          double _index1 = ((_n + 1) / 4) - 1;
+          deviceRssiValues[BLE] = _sortedValues;
 
-          double _index2 = ((3 * (_n + 1)) / 4) - 1;
+          if (_sortedValues.length != 0) {
+            double averageRSSI =
+                _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
+            BLE.averageRSSI = averageRSSI;
+            //  print('Average RSSI: ${BLE.averageRSSI}');
 
-          double _q1;
-          if (_index1 % 2 == 0) {
-            _q1 = _sortedValues[_index1.toInt()].toDouble();
+            distance = BLE.getDistance(averageRSSI.toDouble());
+            BLE.distance = distance;
+
+            print('Avg distance : ${BLE.distance} --- id : ${BLE.id}');
+            nearestDevices = getNearestThreeDevices();
+            trilateration(
+                nearestDevices[0], nearestDevices[1], nearestDevices[2]);
+            deviceRssiValues[BLE]!.clear();
+            print("**************************************");
           } else {
-            _q1 = (((_sortedValues[_index1.floor()]).toDouble() +
-                        (_sortedValues[(_index1 + 1).floor()]).toDouble()) /
-                    2)
-                .toDouble();
+            print("list is empty");
           }
-          double _q3;
-          if (_index2 % 2 == 0) {
-            _q3 = _sortedValues[_index2.toInt()].toDouble();
-          } else {
-            _q3 = (((_sortedValues[_index2.floor()]).toDouble() +
-                        (_sortedValues[(_index2 + 1).floor()]).toDouble()) /
-                    2)
-                .toDouble();
-          }
-          double _iqr = _q3 - _q1;
-
-          deviceRssiValues[deviceId]!.removeWhere(
-              (value) => value < _q1 - 1.5 * _iqr || value > _q3 + 1.5 * _iqr);
-
-          int _sum = deviceRssiValues[deviceId]!.reduce((a, b) => a + b);
-          int avg = _sum ~/ deviceRssiValues[deviceId]!.length;
-
-          double _sumDistance = deviceRssiValues[deviceId]!
-            .map((rssi) => getDistance(rssi.toDouble()))
-            .reduce((a, b) => a + b);
-          double avgDistance = _sumDistance / deviceRssiValues[deviceId]!.length;
-          print('Avg Distance for $deviceId: $avgDistance m');
-
-          print('Avg rssi for $deviceId: $avg');
-
-          deviceRssiValues[deviceId]!.clear();
         }
       }
     });
@@ -133,11 +119,7 @@ class BLEScanner {
     });
   }
 
-  double getDistance(double rssi) {
-    double distance = pow(10, ((-65 - rssi) / (10 * 2))) as double;
-    return distance;
-  }
-
+  void trilateration(ble beacon1, ble beacon2, ble beacon3) {}
 
 /*     void kalman() {
       List<int> rssi = [];

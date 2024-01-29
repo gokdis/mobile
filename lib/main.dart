@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'ble/ble_scanner.dart';
 import 'user/shopping_list.dart';
+import 'user/login.dart';
+import 'user/register.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,9 +13,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //blEscanner.startScan();
+    blEscanner.startScan();
     return MaterialApp(
-      home: ShoppingListWidget(),
+      home: RegistrationPage(),
     );
   }
 }
