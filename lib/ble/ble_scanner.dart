@@ -4,13 +4,12 @@ import 'dart:math';
 
 class ble {
   String id;
-  double x;
-  double y;
+  Coordinates coordinates;
   int rssi;
   double averageRSSI;
   double distance;
 
-  ble(this.id, this.x, this.y, this.rssi, this.distance, this.averageRSSI);
+  ble(this.id, this.coordinates, this.rssi, this.distance, this.averageRSSI);
 
   double getDistance(double rssi) {
     double distance = pow(10, ((-65 - rssi) / (10 * 2))) as double;
@@ -18,9 +17,21 @@ class ble {
   }
 }
 
+class Coordinates {
+  double x;
+  double y;
+  Coordinates(this.x, this.y);
+}
+
 class BLEScanner {
   Map<ble, List<int>> deviceRssiValues = {};
   late double distance;
+
+  static final Map<String, Coordinates> beaconCoordinates = {
+    'C7:10:69:07:FB:51': Coordinates(0.0, 0.0),
+    'F5:E5:8C:26:DB:7A': Coordinates(0.5, 0.0),
+    'EB:6F:20:3B:89:E2': Coordinates(0.25, 0.43),
+  };
 
   void startScan() async {
     try {
@@ -38,15 +49,21 @@ class BLEScanner {
   }
 
   List<ble> getNearestThreeDevices() {
-    final sortedDevices = deviceRssiValues.keys.toList()
-      ..sort((a, b) => a.distance.compareTo(b.distance));
+    List<ble> nearestDevices = [];
 
-    final nearestDevices =
-        sortedDevices.where((device) => device.distance > 0).take(3).toList();
+    try {
+      final sortedDevices = deviceRssiValues.keys.toList()
+        ..sort((a, b) => a.distance.compareTo(b.distance));
 
-    print('Nearest 3 BLE devices:');
-    for (final device in nearestDevices) {
-      print('Device ID: ${device.id}, Distance: ${device.distance}');
+      nearestDevices =
+          sortedDevices.where((device) => device.distance > 0).take(3).toList();
+
+      print('Nearest 3 BLE devices:');
+      for (final device in nearestDevices) {
+        print('Device ID: ${device.id}, Distance: ${device.distance}');
+      }
+    } catch (e) {
+      print('Not enough devices : ${nearestDevices.length}');
     }
 
     return nearestDevices;
@@ -60,7 +77,7 @@ class BLEScanner {
 
         ble BLE = deviceRssiValues.keys.firstWhere(
           (key) => key.id == deviceId,
-          orElse: () => ble(deviceId, 0, 0, 0, -1, 0),
+          orElse: () => ble(deviceId, Coordinates(0.0, 0.0), 0, -1, 0),
         );
 
         deviceRssiValues.putIfAbsent(
@@ -70,9 +87,8 @@ class BLEScanner {
 
         //BLE.rssi = result.rssi;
         deviceRssiValues[BLE]!.add(result.rssi);
-        //  print('rssi: ${result.rssi}');
+        print('rssi: ${result.rssi} -- id : $deviceId');
         //  print('id : $deviceId');
-        //  print('List : ${deviceRssiValues[BLE]}');
         if (deviceRssiValues[BLE]!.length == 10) {
           List<int> _sortedValues = deviceRssiValues[BLE]!..sort();
           //   print(' sorted values : $_sortedValues');
@@ -103,8 +119,12 @@ class BLEScanner {
 
             print('Avg distance : ${BLE.distance} --- id : ${BLE.id}');
             nearestDevices = getNearestThreeDevices();
-            trilateration(
-                nearestDevices[0], nearestDevices[1], nearestDevices[2]);
+            if (nearestDevices.length >= 3) {
+              trilateration(
+                  nearestDevices[0], nearestDevices[1], nearestDevices[2]);
+            } else {
+              print("Not enough devices for trilateration");
+            }
             deviceRssiValues[BLE]!.clear();
             print("**************************************");
           } else {
@@ -119,7 +139,43 @@ class BLEScanner {
     });
   }
 
-  void trilateration(ble beacon1, ble beacon2, ble beacon3) {}
+  void trilateration(ble beacon1, ble beacon2, ble beacon3) {
+    if (beacon1.distance <= 0 ||
+        beacon2.distance <= 0 ||
+        beacon3.distance <= 0) {
+      print("Invalid distances from one or more beacons.");
+      return;
+    }
+
+    Coordinates coordinates1 =
+        beaconCoordinates[beacon1.id] ?? Coordinates(0.0, 0.0);
+    Coordinates coordinates2 =
+        beaconCoordinates[beacon2.id] ?? Coordinates(0.0, 0.0);
+    Coordinates coordinates3 =
+        beaconCoordinates[beacon3.id] ?? Coordinates(0.0, 0.0);
+
+    double x1 = coordinates1.x;
+    double y1 = coordinates1.y;
+    double x2 = coordinates2.x;
+    double y2 = coordinates2.y;
+    double x3 = coordinates3.x;
+    double y3 = coordinates3.y;
+    double d1 = beacon1.distance;
+    double d2 = beacon2.distance;
+    double d3 = beacon3.distance;
+
+    double A = 2 * (x2 - x1);
+    double B = 2 * (y2 - y1);
+    double C = (d1 * d1 - d2 * d2 - x1 * x1 + x2 * x2 - y1 * y1 + y2 * y2);
+    double D = 2 * (x3 - x2);
+    double E = 2 * (y3 - y2);
+    double F = (d2 * d2 - d3 * d3 - x2 * x2 + x3 * x3 - y2 * y2 + y3 * y3);
+
+    double x = (C * E - F * B) / (E * A - B * D);
+    double y = (C * D - A * F) / (B * D - A * E);
+
+    print('x: $x y: $y');
+  }
 
 /*     void kalman() {
       List<int> rssi = [];
