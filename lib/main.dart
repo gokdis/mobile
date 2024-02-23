@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    blEscanner.startScan();
+    // blEscanner.startScan();
     return MaterialApp(
       home: RegistrationPage(),
     );

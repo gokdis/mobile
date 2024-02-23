@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:gokdis/settings.dart';
+import 'package:http/http.dart' as http;
+import 'package:gokdis/user/login.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -10,11 +14,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
   String? name;
   String? surname;
   String? email;
+  int? age;
   String? confirmEmail;
   String? password;
   DateTime? birthDate;
   String? gender;
   List<String> genders = ['Male', 'Female', 'Other'];
+
+  int calculateAge(DateTime birthDate) {
+    DateTime currentDate = DateTime.now();
+    int age = currentDate.year - birthDate.year;
+    if (currentDate.month < birthDate.month ||
+        (currentDate.month == birthDate.month &&
+            currentDate.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -23,10 +39,96 @@ class _RegistrationPageState extends State<RegistrationPage> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-    if (picked != null && picked != birthDate)
+    if (picked != null && picked != birthDate) {
       setState(() {
         birthDate = picked;
+        age = calculateAge(picked);
       });
+      print(age);
+    }
+  }
+
+  void register() async {
+    String url = Settings.getUrl('person');
+    String emailHelen = 'helen@ieu.edu.tr';
+    String passwordHelen = 'helen';
+
+    String basicAuth =
+        'Basic ' + base64Encode(utf8.encode('$emailHelen:$passwordHelen'));
+
+    final Map<String, dynamic> data = {
+      'email': '$email',
+      'password': '$password',
+      'role': 'ROLE_USER',
+      'name': '$name',
+      'age': age
+    };
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+    var encodedData = jsonEncode(data);
+    print("name before : $name");
+    print("encoded data : $encodedData");
+
+    try {
+      print(
+          'Sending request to $url with headers: $requestHeaders and data: $data');
+      final response = await http.post(
+        Uri.parse(url),
+        body: encodedData,
+        headers: requestHeaders,
+      );
+      // print("jsonencode data : {$jsonEncode${(data)}");
+      // print("data : $data");
+      // print('Response status: ${response.statusCode}');
+      print("body : ${response.body}");
+      print("*********************");
+
+      print("name after : $name");
+
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          print("Success but no content returned.");
+        } else {
+          print("success");
+          navigateToLogin();
+        }
+      } else {
+        print("fail with status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  void navigateToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginPage(),
+      ),
+    );
+  }
+
+  void showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Registration Error'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Okay'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -72,15 +174,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 onSaved: (value) => email = value,
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Confirm Email'),
-                validator: (value) {
-                  if (value == null || value.isEmpty || value != email) {
-                    return 'Emails do not match';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
                 decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 validator: (value) {
@@ -121,6 +214,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       _formKey.currentState!.save();
+                      register();
                     }
                   },
                   child: Text('Register'),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gokdis/user/special_offer.dart';
 import 'package:gokdis/ble/map.dart';
+import 'package:gokdis/ble/ble_scanner.dart';
 
 class ShoppingListWidget extends StatefulWidget {
   @override
@@ -53,6 +54,17 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
               shape: CircleBorder(),
               padding: EdgeInsets.all(16),
               backgroundColor: Colors.orange,
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // navigateToBLE();
+            },
+            child: Icon(Icons.air),
+            style: ElevatedButton.styleFrom(
+              shape: CircleBorder(),
+              padding: EdgeInsets.all(16),
+              backgroundColor: Colors.green,
             ),
           ),
         ],
@@ -116,6 +128,15 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     );
   }
 
+/*   void navigateToBLE() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BLEScanner(),
+      ),
+    );
+  }
+ */
   Widget _buildItemList() {
     return Expanded(
       child: ListView.builder(
