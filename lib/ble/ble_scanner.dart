@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
 //import 'package:simple_kalman/simple_kalman.dart';
@@ -23,9 +24,16 @@ class Coordinates {
   Coordinates(this.x, this.y);
 }
 
-class BLEScanner {
+class BLEScannerWidget extends StatefulWidget {
+  @override
+  BLEScanner createState() => BLEScanner();
+}
+
+class BLEScanner extends State<BLEScannerWidget> {
   Map<ble, List<int>> deviceRssiValues = {};
-  late double distance;
+  double x = 0.0;
+  double y = 0.0;
+  double distance = 0.0;
 
   static final Map<String, Coordinates> beaconCoordinates = {
     'C7:10:69:07:FB:51': Coordinates(0.0, 0.0),
@@ -46,6 +54,27 @@ class BLEScanner {
       print("error : $e");
     }
     getRSSI();
+  }
+
+  void updateDistanceUI(double newDistance) {
+    if (mounted) {
+      setState(() {
+        distance = newDistance;
+      });
+    } else {
+      print("distance has not been updated yet!");
+    }
+  }
+
+  void updateXY(double newX, double newY) {
+    if (mounted) {
+      setState(() {
+        x = newX;
+        y = newY;
+      });
+    } else {
+      print("x and y has not been updated yet!");
+    }
   }
 
   List<ble> getNearestThreeDevices() {
@@ -73,6 +102,7 @@ class BLEScanner {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceId = result.device.remoteId.str;
+
         List<ble> nearestDevices;
 
         ble BLE = deviceRssiValues.keys.firstWhere(
@@ -112,10 +142,12 @@ class BLEScanner {
             double averageRSSI =
                 _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
             BLE.averageRSSI = averageRSSI;
-            //  print('Average RSSI: ${BLE.averageRSSI}');
+            print('Average RSSI: ${BLE.averageRSSI}');
 
             distance = BLE.getDistance(averageRSSI.toDouble());
+            print("distance : $distance id : $deviceId");
             BLE.distance = distance;
+            updateDistanceUI(BLE.distance);
 
             print('Avg distance : ${BLE.distance} --- id : ${BLE.id}');
             nearestDevices = getNearestThreeDevices();
@@ -171,10 +203,36 @@ class BLEScanner {
     double E = 2 * (y3 - y2);
     double F = (d2 * d2 - d3 * d3 - x2 * x2 + x3 * x3 - y2 * y2 + y3 * y3);
 
-    double x = (C * E - F * B) / (E * A - B * D);
-    double y = (C * D - A * F) / (B * D - A * E);
-
+    x = (C * E - F * B) / (E * A - B * D);
+    y = (C * D - A * F) / (B * D - A * E);
     print('x: $x y: $y');
+
+    updateXY(x, y);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('BLE Scanner'),
+      ),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text('X: $x'),
+              Text('Y: $y'),
+              ...deviceRssiValues.entries
+                  .map((entry) => Text(
+                      'Device ID: ${entry.key.id}, Distance: ${entry.key.distance.toStringAsFixed(5)} meters'))
+                  .toList(),
+              ElevatedButton(onPressed: startScan, child: Text('SCAN')),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
 /*     void kalman() {

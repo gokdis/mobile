@@ -58,7 +58,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
           ),
           ElevatedButton(
             onPressed: () {
-              // navigateToBLE();
+              navigateToBLE();
             },
             child: Icon(Icons.air),
             style: ElevatedButton.styleFrom(
@@ -128,15 +128,15 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     );
   }
 
-/*   void navigateToBLE() {
+  void navigateToBLE() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BLEScanner(),
+        builder: (context) => BLEScannerWidget(),
       ),
     );
   }
- */
+
   Widget _buildItemList() {
     return Expanded(
       child: ListView.builder(

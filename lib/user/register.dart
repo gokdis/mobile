@@ -97,9 +97,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
           navigateToLogin();
         }
       } else {
+        showErrorDialog(
+            "Failed to register. Status code: ${response.statusCode}");
         print("fail with status code: ${response.statusCode}");
       }
     } catch (error) {
+      showErrorDialog("An error occurred during registration: $error");
       print('Error: $error');
     }
   }

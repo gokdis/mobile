@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gokdis/user/register.dart';
 import 'package:gokdis/user/shopping_list.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gokdis/ble/ble_scanner.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -12,9 +14,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final BLEScanner blEscanner = BLEScanner();
+
   bool _rememberMe = false;
   bool _isError = false;
-
+  bool isLoggedIn = false;
+  String loggedInEmail = "";
   @override
   void initState() {
     super.initState();
@@ -35,14 +40,35 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void getLoggedInUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    String loggedInEmail = prefs.getString('loggedInEmail') ?? '';
+    if (isLoggedIn) {
+      blEscanner.startScan();
+      print("started scanning for the user : $loggedInEmail");
+    } else {
+      print("scanning failed");
+    }
+  }
+
   void _login() async {
+    bool login = true;
     if (_rememberMe) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('email', _usernameController.text);
       prefs.setString('password', _passwordController.text);
     }
-
-    navigateToShoppingList();
+    if (login) {
+      isLoggedIn = true;
+      loggedInEmail = _usernameController.text;
+      // SharedPreferences preferences = await SharedPreferences.getInstance();
+      // await preferences.setBool('isLoggedIn', true);
+      // await preferences.setString('loggedInEmail', _usernameController.text);
+      print("started scanninng with : logged in email : $loggedInEmail");
+      //blEscanner.startScan();
+      navigateToShoppingList();
+    }
   }
 
   void navigateToShoppingList() {
@@ -54,7 +80,14 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _navigateToRegister() {}
+  void _navigateToRegister() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegistrationPage(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
