@@ -50,6 +50,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   void register() async {
     String url = Settings.getUrl('person');
+    //String urlLocal = "https://localhost:8080/api/v1/person";
     String emailHelen = 'helen@ieu.edu.tr';
     String passwordHelen = 'helen';
 
@@ -61,7 +62,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
       'password': '$password',
       'role': 'ROLE_USER',
       'name': '$name',
-      'age': age
+      'age': age,
+      'gender': '$gender',
+      'surname': '$surname'
     };
 
     final Map<String, String> requestHeaders = {
