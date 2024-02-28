@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:gokdis/settings.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +11,7 @@ class RegistrationPage extends StatefulWidget {
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
+  Settings settings = Settings();
   final _formKey = GlobalKey<FormState>();
   String? name;
   String? surname;
@@ -49,13 +51,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   void register() async {
-    String url = Settings.getUrl('person');
-    //String urlLocal = "https://localhost:8080/api/v1/person";
-    String emailHelen = 'helen@ieu.edu.tr';
-    String passwordHelen = 'helen';
+    String url = settings.getUrl('person');
+    print("url : $url");
+
+    String passwordAuth = dotenv.get('password');
+    String emailAuth = dotenv.get('email');
+    print('pass : $passwordAuth');
+    print('email : $emailAuth');
 
     String basicAuth =
-        'Basic ' + base64Encode(utf8.encode('$emailHelen:$passwordHelen'));
+        'Basic ' + base64Encode(utf8.encode('$emailAuth:$passwordAuth'));
 
     final Map<String, dynamic> data = {
       'email': '$email',
@@ -77,8 +82,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
     print("encoded data : $encodedData");
 
     try {
-      print(
-          'Sending request to $url with headers: $requestHeaders and data: $data');
       final response = await http.post(
         Uri.parse(url),
         body: encodedData,
