@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
-//import 'package:simple_kalman/simple_kalman.dart';
+import 'package:gokdis/ble/stream_controller.dart';
 
 class ble {
   String id;
@@ -34,12 +35,34 @@ class BLEScanner extends State<BLEScannerWidget> {
   double x = 0.0;
   double y = 0.0;
   double distance = 0.0;
+  StreamSubscription<ScanResultEvent>? scanSubscription;
 
   static final Map<String, Coordinates> beaconCoordinates = {
     'C7:10:69:07:FB:51': Coordinates(0.0, 0.0),
     'F5:E5:8C:26:DB:7A': Coordinates(0.5, 0.0),
     'EB:6F:20:3B:89:E2': Coordinates(0.25, 0.43),
   };
+
+  @override
+  void initState() {
+    super.initState();
+    scanSubscription = scanResultStream.listen((ScanResultEvent event) {
+      setState(() {
+        x = event.x;
+        y = event.y;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    scanSubscription?.cancel();
+    super.dispose();
+  }
+
+  void onScanResultReceived(double x, double y) {
+    scanResultStreamController.add(ScanResultEvent(x, y));
+  }
 
   void startScan() async {
     try {
@@ -110,18 +133,14 @@ class BLEScanner extends State<BLEScannerWidget> {
           orElse: () => ble(deviceId, Coordinates(0.0, 0.0), 0, -1, 0),
         );
 
-        deviceRssiValues.putIfAbsent(
-            BLE,
-            () =>
-                []); // initializes an empty list if device does not have rssi value
+        deviceRssiValues.putIfAbsent(BLE, () => []);
 
-        //BLE.rssi = result.rssi;
         deviceRssiValues[BLE]!.add(result.rssi);
         print('rssi: ${result.rssi} -- id : $deviceId');
-        //  print('id : $deviceId');
+
         if (deviceRssiValues[BLE]!.length == 10) {
           List<int> _sortedValues = deviceRssiValues[BLE]!..sort();
-          //   print(' sorted values : $_sortedValues');
+
           double mean =
               _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
           double sumOfSquares = _sortedValues.fold(0, (total, value) {
@@ -205,12 +224,11 @@ class BLEScanner extends State<BLEScannerWidget> {
 
     x = (C * E - F * B) / (E * A - B * D);
     y = (C * D - A * F) / (B * D - A * E);
+    onScanResultReceived(x, y);
     print('x: $x y: $y');
-
-    updateXY(x, y);
   }
 
-  @override
+/*   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -227,25 +245,42 @@ class BLEScanner extends State<BLEScannerWidget> {
                   .map((entry) => Text(
                       'Device ID: ${entry.key.id}, Distance: ${entry.key.distance.toStringAsFixed(5)} meters'))
                   .toList(),
-              ElevatedButton(onPressed: startScan, child: Text('SCAN')),
+
             ],
           ),
         ),
       ),
     );
-  }
-
-/*     void kalman() {
-      List<int> rssi = [];
-
-    for (List<int> valuesList in deviceRssiValues.values) {
-      rssi.addAll(valuesList);
-    }
-    final kalman = SimpleKalman(errorMeasure: 256, errorEstimate: 150, q: 0.9);
-
-    for (final value in rssi) {
-      print('Origin: $value Filtered: ${kalman.filtered(value.toDouble())}');
-
-    }
   } */
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: InteractiveViewer(
+        panEnabled: true,
+        boundaryMargin: EdgeInsets.all(80),
+        minScale: 0.5,
+        maxScale: 4,
+        child: Stack(
+          children: <Widget>[
+            Image.asset(
+              "assets/images/supermarket.png",
+              fit: BoxFit.cover,
+              height: double.infinity,
+              width: double.infinity,
+            ),
+            Positioned(
+              left: x,
+              top: y,
+              child: Icon(
+                Icons.location_on,
+                color: Colors.orange,
+                size: 25,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gokdis/user/special_offer.dart';
-import 'package:gokdis/ble/map.dart';
 import 'package:gokdis/ble/ble_scanner.dart';
 import 'package:gokdis/ble/barcode_reader.dart';
 
@@ -59,24 +58,13 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
           ),
           ElevatedButton(
             onPressed: () {
-              navigateToBLE();
-            },
-            child: Icon(Icons.air),
-            style: ElevatedButton.styleFrom(
-              shape: CircleBorder(),
-              padding: EdgeInsets.all(16),
-              backgroundColor: Colors.green,
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
               navigateToBarcodeReader();
             },
             child: Icon(Icons.barcode_reader),
             style: ElevatedButton.styleFrom(
               shape: CircleBorder(),
               padding: EdgeInsets.all(16),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.orange,
             ),
           ),
         ],
@@ -126,7 +114,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MapPage(),
+        builder: (context) => BLEScannerWidget(),
       ),
     );
   }
@@ -145,15 +133,6 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
       context,
       MaterialPageRoute(
         builder: (context) => BarcodeReader(),
-      ),
-    );
-  }
-
-  void navigateToBLE() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BLEScannerWidget(),
       ),
     );
   }

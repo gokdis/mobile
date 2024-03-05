@@ -52,12 +52,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   void register() async {
     String url = settings.getUrl('person');
-    print("url : $url");
 
     String passwordAuth = dotenv.get('password');
     String emailAuth = dotenv.get('email');
-    print('pass : $passwordAuth');
-    print('email : $emailAuth');
+
 
     String basicAuth =
         'Basic ' + base64Encode(utf8.encode('$emailAuth:$passwordAuth'));
@@ -145,6 +143,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Registration"),
+        backgroundColor: Colors.orange,
       ),
       body: Form(
         key: _formKey,
@@ -227,6 +226,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     }
                   },
                   child: Text('Register'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
                 ),
               ),
             ],
