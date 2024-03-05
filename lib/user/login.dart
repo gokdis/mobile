@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gokdis/ble/ble_scanner.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:gokdis/settings.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -45,14 +47,13 @@ class _LoginPageState extends State<LoginPage> {
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
     String loggedInEmail = prefs.getString('loggedInEmail') ?? '';
     if (isLoggedIn) {
-      blEscanner.startScan();
       print("started scanning for the user : $loggedInEmail");
     } else {
       print("scanning failed");
     }
   }
 
-  void _login() async {
+/*   void _login() async {
     bool login = true;
     if (_rememberMe) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -66,8 +67,48 @@ class _LoginPageState extends State<LoginPage> {
       // await preferences.setBool('isLoggedIn', true);
       // await preferences.setString('loggedInEmail', _usernameController.text);
       print("started scanninng with : logged in email : $loggedInEmail");
-      //blEscanner.startScan();
       navigateToShoppingList();
+    }
+  } */
+
+  Future<void> login() async {
+    if (_rememberMe) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('email', _usernameController.text);
+      prefs.setString('password', _passwordController.text);
+    }
+    String url = Settings.instance.getUrl('person');
+
+    String passwordAuth = dotenv.get('password');
+    String emailAuth = dotenv.get('email');
+
+    String basicAuth =
+        'Basic ' + base64Encode(utf8.encode('$emailAuth:$passwordAuth'));
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: requestHeaders,
+      );
+
+
+      if (response.statusCode == 200) {
+        isLoggedIn = true;
+        loggedInEmail = _usernameController.text;
+
+        print("Successfully fetched data.");
+        navigateToShoppingList();
+      } else {
+        print("Failed to fetch data. Status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error occurred while fetching data: $error");
     }
   }
 
@@ -132,7 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   ElevatedButton(
-                    onPressed: _login,
+                    onPressed: login,
                     child: Text('Login'),
                     style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Colors.orange),

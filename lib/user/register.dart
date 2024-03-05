@@ -11,7 +11,6 @@ class RegistrationPage extends StatefulWidget {
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
-  Settings settings = Settings();
   final _formKey = GlobalKey<FormState>();
   String? name;
   String? surname;
@@ -50,12 +49,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
-  void register() async {
-    String url = settings.getUrl('person');
+  Future<void> register() async {
+    String url = Settings.instance.getUrl('person');
 
     String passwordAuth = dotenv.get('password');
     String emailAuth = dotenv.get('email');
-
 
     String basicAuth =
         'Basic ' + base64Encode(utf8.encode('$emailAuth:$passwordAuth'));
@@ -85,9 +83,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         body: encodedData,
         headers: requestHeaders,
       );
-      // print("jsonencode data : {$jsonEncode${(data)}");
-      // print("data : $data");
-      // print('Response status: ${response.statusCode}');
+
       print("body : ${response.body}");
       print("*********************");
 
