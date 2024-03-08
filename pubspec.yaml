@@ -17,7 +17,6 @@ dependencies:
 
   cupertino_icons: ^1.0.2
   flutter_blue_plus: ^1.31.15
-  simple_kalman: ^1.0.2
   shared_preferences: ^2.2.2
   http: ^1.2.1
   flutter_barcode_scanner: ^2.0.0
