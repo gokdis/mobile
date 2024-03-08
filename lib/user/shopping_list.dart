@@ -29,6 +29,8 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     );
   }
 
+  // Shopping list functions
+
   Widget _buildBottomNavigationBar() {
     return BottomAppBar(
       child: Row(
@@ -110,6 +112,32 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     }
   }
 
+  Widget _buildItemList() {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: _items.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(_items[index]),
+            trailing: IconButton(
+              icon: Icon(Icons.delete),
+              onPressed: () {
+                _removeItem(index);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+    });
+  }
+  // Navigation functions
+
   void navigateToMap() {
     Navigator.push(
       context,
@@ -135,30 +163,5 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
         builder: (context) => BarcodeReader(),
       ),
     );
-  }
-
-  Widget _buildItemList() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: _items.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(_items[index]),
-            trailing: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () {
-                _removeItem(index);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _removeItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
   }
 }

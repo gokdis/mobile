@@ -7,10 +7,10 @@ import 'package:gokdis/user/login.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
-  _RegistrationPageState createState() => _RegistrationPageState();
+  RegistrationPageState createState() => RegistrationPageState();
 }
 
-class _RegistrationPageState extends State<RegistrationPage> {
+class RegistrationPageState extends State<RegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   String? name;
   String? surname;
@@ -45,7 +45,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
         birthDate = picked;
         age = calculateAge(picked);
       });
-      print(age);
     }
   }
 
@@ -74,8 +73,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
       'Authorization': basicAuth,
     };
     var encodedData = jsonEncode(data);
-    print("name before : $name");
-    print("encoded data : $encodedData");
 
     try {
       final response = await http.post(
@@ -84,36 +81,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
         headers: requestHeaders,
       );
 
-      print("body : ${response.body}");
-      print("*********************");
-
-      print("name after : $name");
-
       if (response.statusCode == 200) {
-        if (response.body.isEmpty) {
-          print("Success but no content returned.");
-        } else {
-          print("success");
-          navigateToLogin();
-        }
+        navigateToLogin();
       } else {
         showErrorDialog(
             "Failed to register. Status code: ${response.statusCode}");
-        print("fail with status code: ${response.statusCode}");
       }
     } catch (error) {
       showErrorDialog("An error occurred during registration: $error");
-      print('Error: $error');
     }
-  }
-
-  void navigateToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LoginPage(),
-      ),
-    );
   }
 
   void showErrorDialog(String message) {
@@ -130,6 +106,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void navigateToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginPage(),
       ),
     );
   }
@@ -225,6 +210,29 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                   ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text('Already Registered? '),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => LoginPage()),
+                        );
+                      },
+                      child: Text(
+                        'Sign in!',
+                        style: TextStyle(
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

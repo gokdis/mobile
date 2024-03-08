@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
 import 'package:gokdis/ble/stream_controller.dart';
+import 'package:gokdis/settings.dart';
 
 class ble {
   String id;
@@ -228,31 +229,6 @@ class BLEScanner extends State<BLEScannerWidget> {
     print('x: $x y: $y');
   }
 
-/*   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('BLE Scanner'),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text('X: $x'),
-              Text('Y: $y'),
-              ...deviceRssiValues.entries
-                  .map((entry) => Text(
-                      'Device ID: ${entry.key.id}, Distance: ${entry.key.distance.toStringAsFixed(5)} meters'))
-                  .toList(),
-
-            ],
-          ),
-        ),
-      ),
-    );
-  } */
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -264,14 +240,15 @@ class BLEScanner extends State<BLEScannerWidget> {
         child: Stack(
           children: <Widget>[
             Image.asset(
+              alignment: Alignment.topLeft,
               "assets/images/supermarket.png",
-              fit: BoxFit.cover,
+              // fit: BoxFit.cover,
               height: double.infinity,
               width: double.infinity,
             ),
             Positioned(
-              left: x,
-              top: y,
+              left: 20,
+              top: 50,
               child: Icon(
                 Icons.location_on,
                 color: Colors.orange,

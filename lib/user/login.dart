@@ -4,8 +4,6 @@ import 'package:gokdis/user/shopping_list.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gokdis/ble/ble_scanner.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:gokdis/settings.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,7 +14,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final BLEScanner blEscanner = BLEScanner();
 
   bool _rememberMe = false;
   bool _isError = false;
@@ -25,65 +22,49 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _loadSavedCredentials();
+
+    _loadAppSettings();
   }
 
-  void _loadSavedCredentials() async {
+  void _loadAppSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedEmail = prefs.getString('email');
-    String? savedPassword = prefs.getString('password');
+    bool? rememberMe = prefs.getBool('rememberMe');
 
-    if (savedEmail != null && savedPassword != null) {
+    if (rememberMe != null && rememberMe) {
+      String? savedEmail = prefs.getString('email');
+      String? savedPassword = prefs.getString('password');
+
+      if (savedEmail != null && savedPassword != null) {
+        setState(() {
+          _rememberMe = true;
+          _usernameController.text = savedEmail;
+          _passwordController.text = savedPassword;
+        });
+      }
+    } else {
       setState(() {
-        _rememberMe = true;
-        _usernameController.text = savedEmail;
-        _passwordController.text = savedPassword;
+        _rememberMe = rememberMe ?? false;
       });
     }
   }
 
-  void getLoggedInUser() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    String loggedInEmail = prefs.getString('loggedInEmail') ?? '';
-    if (isLoggedIn) {
-      print("started scanning for the user : $loggedInEmail");
-    } else {
-      print("scanning failed");
-    }
-  }
-
-/*   void _login() async {
-    bool login = true;
-    if (_rememberMe) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString('email', _usernameController.text);
-      prefs.setString('password', _passwordController.text);
-    }
-    if (login) {
-      isLoggedIn = true;
-      loggedInEmail = _usernameController.text;
-      // SharedPreferences preferences = await SharedPreferences.getInstance();
-      // await preferences.setBool('isLoggedIn', true);
-      // await preferences.setString('loggedInEmail', _usernameController.text);
-      print("started scanninng with : logged in email : $loggedInEmail");
-      navigateToShoppingList();
-    }
-  } */
-
   Future<void> login() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
     if (_rememberMe) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('email', _usernameController.text);
       prefs.setString('password', _passwordController.text);
+    } else {
+      prefs.remove('email');
+      prefs.remove('password');
     }
-    String url = Settings.instance.getUrl('person');
+    prefs.setBool('rememberMe', _rememberMe);
 
-    String passwordAuth = dotenv.get('password');
-    String emailAuth = dotenv.get('email');
+    String url = Settings.instance.getUrl('beacon/c7:10:69:07:fb:51');
 
-    String basicAuth =
-        'Basic ' + base64Encode(utf8.encode('$emailAuth:$passwordAuth'));
+    String email = _usernameController.text;
+    String password = _passwordController.text;
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
 
     final Map<String, String> requestHeaders = {
       'Content-type': 'application/json',
@@ -97,17 +78,15 @@ class _LoginPageState extends State<LoginPage> {
         headers: requestHeaders,
       );
 
-
-      if (response.statusCode == 200) {
-        isLoggedIn = true;
-        loggedInEmail = _usernameController.text;
-
-        print("Successfully fetched data.");
+      if (response.statusCode == 200 ||
+          response.statusCode == 403 ||
+          response.statusCode == 204) {
         navigateToShoppingList();
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
       }
     } catch (error) {
+      _isError = true;
       print("Error occurred while fetching data: $error");
     }
   }
@@ -166,6 +145,9 @@ class _LoginPageState extends State<LoginPage> {
                         onChanged: (value) {
                           setState(() {
                             _rememberMe = value!;
+                          });
+                          SharedPreferences.getInstance().then((prefs) {
+                            prefs.setBool('rememberMe', _rememberMe);
                           });
                         },
                       ),
