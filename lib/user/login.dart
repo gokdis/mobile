@@ -18,7 +18,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _rememberMe = false;
   bool _isError = false;
   bool isLoggedIn = false;
-  String loggedInEmail = "";
+  String email = "";
+  String password = "";
   @override
   void initState() {
     super.initState();
@@ -30,40 +31,34 @@ class _LoginPageState extends State<LoginPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool? rememberMe = prefs.getBool('rememberMe');
 
-    if (rememberMe != null && rememberMe) {
+    setState(() {
+      _rememberMe = rememberMe ?? false;
+    });
+
+    if (_rememberMe) {
       String? savedEmail = prefs.getString('email');
       String? savedPassword = prefs.getString('password');
 
       if (savedEmail != null && savedPassword != null) {
-        setState(() {
-          _rememberMe = true;
-          _usernameController.text = savedEmail;
-          _passwordController.text = savedPassword;
-        });
+        _usernameController.text = savedEmail;
+        _passwordController.text = savedPassword;
       }
-    } else {
-      setState(() {
-        _rememberMe = rememberMe ?? false;
-      });
     }
   }
+
 
   Future<void> login() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    if (_rememberMe) {
-      prefs.setString('email', _usernameController.text);
-      prefs.setString('password', _passwordController.text);
-    } else {
-      prefs.remove('email');
-      prefs.remove('password');
-    }
+    prefs.setString('email', _usernameController.text);
+    prefs.setString('password', _passwordController.text);
+
     prefs.setBool('rememberMe', _rememberMe);
 
     String url = Settings.instance.getUrl('beacon/c7:10:69:07:fb:51');
 
-    String email = _usernameController.text;
-    String password = _passwordController.text;
+    email = _usernameController.text;
+    password = _passwordController.text;
     String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
 
     final Map<String, String> requestHeaders = {

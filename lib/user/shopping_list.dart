@@ -2,6 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:gokdis/user/special_offer.dart';
 import 'package:gokdis/ble/ble_scanner.dart';
 import 'package:gokdis/ble/barcode_reader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:gokdis/settings.dart';
+
+class BeaconProvider with ChangeNotifier {
+  List<dynamic> _beaconData = [];
+
+  List<dynamic> get beaconData => _beaconData;
+
+  void setBeaconData(List<dynamic> beaconData) {
+    _beaconData = beaconData;
+    notifyListeners();
+  }
+}
 
 class ShoppingListWidget extends StatefulWidget {
   @override
@@ -11,6 +27,13 @@ class ShoppingListWidget extends StatefulWidget {
 class ShoppingListWidgetState extends State<ShoppingListWidget> {
   TextEditingController _itemController = TextEditingController();
   List<String> _items = [];
+  List<dynamic> beaconData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    getBeacons();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +158,52 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     setState(() {
       _items.removeAt(index);
     });
+  }
+
+  // get beacons from server
+
+  Future<void> getBeacons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    String url = Settings.instance.getUrl('beacon');
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: requestHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        beaconData = jsonDecode(response.body);
+        Provider.of<BeaconProvider>(context, listen: false)
+            .setBeaconData(beaconData);
+         //   print('before update : $beaconData');
+        updateGlobalBeaconCoordinates(beaconData);
+        print('After updat e: ${Settings.globalBeaconCoordinates}');
+      } else {
+        print("Failed to fetch data. Status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error occurred while fetching data: $error");
+    }
+  }
+
+  void updateGlobalBeaconCoordinates(List<dynamic> beaconData) {
+    for (var beacon in beaconData) {
+      String id = beacon['id'];
+      double x = beacon['x'].toDouble();
+      double y = beacon['y'].toDouble();
+      Settings.globalBeaconCoordinates[id] = Coordinates(x, y);
+    }
   }
   // Navigation functions
 

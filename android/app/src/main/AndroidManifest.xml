@@ -6,6 +6,7 @@
      <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
      <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
      <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="28" />
+     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="gokdis"
         android:name="${applicationName}"

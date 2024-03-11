@@ -4,6 +4,8 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
 import 'package:gokdis/ble/stream_controller.dart';
 import 'package:gokdis/settings.dart';
+import 'package:provider/provider.dart';
+import 'package:gokdis/user/shopping_list.dart';
 
 class ble {
   String id;
@@ -24,6 +26,10 @@ class Coordinates {
   double x;
   double y;
   Coordinates(this.x, this.y);
+  @override
+  String toString() {
+    return 'x: $x, y: $y';
+  }
 }
 
 class BLEScannerWidget extends StatefulWidget {
@@ -33,8 +39,10 @@ class BLEScannerWidget extends StatefulWidget {
 
 class BLEScanner extends State<BLEScannerWidget> {
   Map<ble, List<int>> deviceRssiValues = {};
+  // user x,y
   double x = 0.0;
   double y = 0.0;
+  // user x,y
   double distance = 0.0;
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
@@ -78,16 +86,6 @@ class BLEScanner extends State<BLEScannerWidget> {
       print("error : $e");
     }
     getRSSI();
-  }
-
-  void updateDistanceUI(double newDistance) {
-    if (mounted) {
-      setState(() {
-        distance = newDistance;
-      });
-    } else {
-      print("distance has not been updated yet!");
-    }
   }
 
   void updateXY(double newX, double newY) {
@@ -167,7 +165,6 @@ class BLEScanner extends State<BLEScannerWidget> {
             distance = BLE.getDistance(averageRSSI.toDouble());
             print("distance : $distance id : $deviceId");
             BLE.distance = distance;
-            updateDistanceUI(BLE.distance);
 
             print('Avg distance : ${BLE.distance} --- id : ${BLE.id}');
             nearestDevices = getNearestThreeDevices();
@@ -205,6 +202,9 @@ class BLEScanner extends State<BLEScannerWidget> {
         beaconCoordinates[beacon2.id] ?? Coordinates(0.0, 0.0);
     Coordinates coordinates3 =
         beaconCoordinates[beacon3.id] ?? Coordinates(0.0, 0.0);
+    print('coordinat 1 : $coordinates1');
+    print('coordinat 2 : $coordinates2');
+    print('coordinat 3 : $coordinates3');
 
     double x1 = coordinates1.x;
     double y1 = coordinates1.y;
@@ -242,13 +242,12 @@ class BLEScanner extends State<BLEScannerWidget> {
             Image.asset(
               alignment: Alignment.topLeft,
               "assets/images/supermarket.png",
-              // fit: BoxFit.cover,
               height: double.infinity,
               width: double.infinity,
             ),
             Positioned(
-              left: 20,
-              top: 50,
+              left: 0,
+              top: 0,
               child: Icon(
                 Icons.location_on,
                 color: Colors.orange,
