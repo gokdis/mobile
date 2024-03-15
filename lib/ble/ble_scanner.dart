@@ -8,18 +8,33 @@ import 'package:provider/provider.dart';
 import 'package:gokdis/user/shopping_list.dart';
 
 class ble {
-  String id;
+  //String id;
+  String mac;
   Coordinates coordinates;
   int rssi;
   double averageRSSI;
   double distance;
 
-  ble(this.id, this.coordinates, this.rssi, this.distance, this.averageRSSI);
+  ble(this.mac, this.coordinates, this.rssi, this.distance, this.averageRSSI);
 
   double getDistance(double rssi) {
     double distance = pow(10, ((-65 - rssi) / (10 * 2))) as double;
     return distance;
   }
+
+/*   double getDistance2(double rssi) {
+    if (rssi == 0) {
+      return -1.0; // if we cannot determine distance, return -1.
+    }
+
+    double ratio = rssi * 1.0 / 4;
+    if (ratio < 1.0) {
+      return pow(ratio, 10).toDouble();
+    } else {
+      double accuracy = (0.89976) * pow(ratio, 7.7095) + 0.111;
+      return accuracy;
+    }
+  } */
 }
 
 class Coordinates {
@@ -46,11 +61,7 @@ class BLEScanner extends State<BLEScannerWidget> {
   double distance = 0.0;
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
-  static final Map<String, Coordinates> beaconCoordinates = {
-    'C7:10:69:07:FB:51': Coordinates(0.0, 0.0),
-    'F5:E5:8C:26:DB:7A': Coordinates(0.5, 0.0),
-    'EB:6F:20:3B:89:E2': Coordinates(0.25, 0.43),
-  };
+  static Map<String, Coordinates> beaconCoordinates = {};
 
   @override
   void initState() {
@@ -61,6 +72,8 @@ class BLEScanner extends State<BLEScannerWidget> {
         y = event.y;
       });
     });
+    print(
+        'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
   }
 
   @override
@@ -77,7 +90,7 @@ class BLEScanner extends State<BLEScannerWidget> {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
-        withKeywords: ['10002', '10000', '26268'],
+        withKeywords: [ '26268'],
         continuousUpdates: true,
         continuousDivisor: 3,
         removeIfGone: Duration(minutes: 2),
@@ -111,7 +124,7 @@ class BLEScanner extends State<BLEScannerWidget> {
 
       print('Nearest 3 BLE devices:');
       for (final device in nearestDevices) {
-        print('Device ID: ${device.id}, Distance: ${device.distance}');
+        print('Device mac: ${device.mac}, Distance: ${device.distance}');
       }
     } catch (e) {
       print('Not enough devices : ${nearestDevices.length}');
@@ -123,22 +136,26 @@ class BLEScanner extends State<BLEScannerWidget> {
   void getRSSI() {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
-        String deviceId = result.device.remoteId.str;
+        String deviceMAC = result.device.remoteId.toString();
 
         List<ble> nearestDevices;
 
         ble BLE = deviceRssiValues.keys.firstWhere(
-          (key) => key.id == deviceId,
-          orElse: () => ble(deviceId, Coordinates(0.0, 0.0), 0, -1, 0),
+          (key) => key.mac == deviceMAC,
+          orElse: () => ble(deviceMAC, Coordinates(0.0, 0.0), 0, -1, 0),
         );
 
         deviceRssiValues.putIfAbsent(BLE, () => []);
-
         deviceRssiValues[BLE]!.add(result.rssi);
-        print('rssi: ${result.rssi} -- id : $deviceId');
+
+        if (deviceRssiValues[BLE]!.length > 10) {
+          
+          deviceRssiValues[BLE]!.removeAt(0);
+        }
 
         if (deviceRssiValues[BLE]!.length == 10) {
-          List<int> _sortedValues = deviceRssiValues[BLE]!..sort();
+          List<int> _sortedValues = List<int>.from(deviceRssiValues[BLE]!);
+           // ..sort();
 
           double mean =
               _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
@@ -156,37 +173,42 @@ class BLEScanner extends State<BLEScannerWidget> {
 
           deviceRssiValues[BLE] = _sortedValues;
 
-          if (_sortedValues.length != 0) {
+          if (_sortedValues.isNotEmpty) {
             double averageRSSI =
                 _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
             BLE.averageRSSI = averageRSSI;
             print('Average RSSI: ${BLE.averageRSSI}');
 
-            distance = BLE.getDistance(averageRSSI.toDouble());
-            print("distance : $distance id : $deviceId");
+            double distance = BLE.getDistance(averageRSSI.toDouble());
+            print(
+                'rssi: ${BLE.averageRSSI} -- mac : $deviceMAC -- distance $distance');
+
             BLE.distance = distance;
 
-            print('Avg distance : ${BLE.distance} --- id : ${BLE.id}');
+            print('Avg distance : ${BLE.distance} --- mac : ${BLE.mac}');
             nearestDevices = getNearestThreeDevices();
+            beaconCoordinates = Settings.globalBeaconCoordinates;
+            print('Array : ${deviceRssiValues[BLE]} -- mac : ${BLE.mac} ');
             if (nearestDevices.length >= 3) {
               trilateration(
                   nearestDevices[0], nearestDevices[1], nearestDevices[2]);
+
             } else {
               print("Not enough devices for trilateration");
             }
-            deviceRssiValues[BLE]!.clear();
-            print("**************************************");
+           
           } else {
-            print("list is empty");
+            print("List is empty after filtering");
           }
+          print("**************************************");
         }
       }
     });
-
     FlutterBluePlus.scanResults.handleError((error) {
       print('Error during scanning: $error');
     });
   }
+
 
   void trilateration(ble beacon1, ble beacon2, ble beacon3) {
     if (beacon1.distance <= 0 ||
@@ -197,11 +219,11 @@ class BLEScanner extends State<BLEScannerWidget> {
     }
 
     Coordinates coordinates1 =
-        beaconCoordinates[beacon1.id] ?? Coordinates(0.0, 0.0);
+        beaconCoordinates[beacon1.mac] ?? Coordinates(0.0, 0.0);
     Coordinates coordinates2 =
-        beaconCoordinates[beacon2.id] ?? Coordinates(0.0, 0.0);
+        beaconCoordinates[beacon2.mac] ?? Coordinates(0.0, 0.0);
     Coordinates coordinates3 =
-        beaconCoordinates[beacon3.id] ?? Coordinates(0.0, 0.0);
+        beaconCoordinates[beacon3.mac] ?? Coordinates(0.0, 0.0);
     print('coordinat 1 : $coordinates1');
     print('coordinat 2 : $coordinates2');
     print('coordinat 3 : $coordinates3');
@@ -246,8 +268,8 @@ class BLEScanner extends State<BLEScannerWidget> {
               width: double.infinity,
             ),
             Positioned(
-              left: 0,
-              top: 0,
+              left: x * 16,
+              top: y * 16,
               child: Icon(
                 Icons.location_on,
                 color: Colors.orange,

@@ -24,7 +24,7 @@ class ShoppingListWidget extends StatefulWidget {
   ShoppingListWidgetState createState() => ShoppingListWidgetState();
 }
 
-class ShoppingListWidgetState extends State<ShoppingListWidget> {
+  class ShoppingListWidgetState extends State<ShoppingListWidget> {
   TextEditingController _itemController = TextEditingController();
   List<String> _items = [];
   List<dynamic> beaconData = [];
@@ -188,7 +188,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
             .setBeaconData(beaconData);
          //   print('before update : $beaconData');
         updateGlobalBeaconCoordinates(beaconData);
-        print('After updat e: ${Settings.globalBeaconCoordinates}');
+       // print('After updat e: ${Settings.globalBeaconCoordinates}');
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
       }
@@ -200,9 +200,10 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
   void updateGlobalBeaconCoordinates(List<dynamic> beaconData) {
     for (var beacon in beaconData) {
       String id = beacon['id'];
+      String mac = beacon['mac'].toString().toUpperCase();
       double x = beacon['x'].toDouble();
       double y = beacon['y'].toDouble();
-      Settings.globalBeaconCoordinates[id] = Coordinates(x, y);
+      Settings.globalBeaconCoordinates[mac] = Coordinates(x, y);
     }
   }
   // Navigation functions
