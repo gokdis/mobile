@@ -10,6 +10,7 @@ class BarcodeReader extends StatefulWidget {
 
 class BarcodeReaderState extends State<BarcodeReader> {
   String _scanBarcode = 'Unknown';
+  List<String> _basketItems = []; 
 
   @override
   void initState() {
@@ -19,7 +20,13 @@ class BarcodeReaderState extends State<BarcodeReader> {
   Future<void> startBarcodeScanStream() async {
     FlutterBarcodeScanner.getBarcodeStreamReceiver(
             '#ff6666', 'Cancel', true, ScanMode.BARCODE)!
-        .listen((barcode) => print(barcode));
+        .listen((barcode) {
+      print(barcode);
+      if (!mounted) return;
+      setState(() {
+        _basketItems.add(barcode); 
+      });
+    });
   }
 
   Future<void> scanQR() async {
@@ -36,6 +43,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
 
     setState(() {
       _scanBarcode = barcodeScanRes;
+      _basketItems.add(barcodeScanRes); 
     });
   }
 
@@ -53,6 +61,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
 
     setState(() {
       _scanBarcode = barcodeScanRes;
+      _basketItems.add(barcodeScanRes); 
     });
   }
 
@@ -60,7 +69,38 @@ class BarcodeReaderState extends State<BarcodeReader> {
   Widget build(BuildContext context) {
     return MaterialApp(
         home: Scaffold(
-            appBar: AppBar(title: const Text('Barcode scan')),
+            appBar: AppBar(
+              title: const Text('Barcode scan'),
+              backgroundColor: Color(0xFFFFA500),
+              actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.shopping_cart),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text("Basket"),
+                          content: SingleChildScrollView(
+                            child: ListBody(
+                              children: _basketItems.map((item) => Text(item)).toList(),
+                            ),
+                          ),
+                          actions: <Widget>[
+                            TextButton(
+                              child: Text('Close'),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                )
+              ],
+            ),
             body: Builder(builder: (BuildContext context) {
               return Container(
                   alignment: Alignment.center,
@@ -69,14 +109,26 @@ class BarcodeReaderState extends State<BarcodeReader> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         ElevatedButton(
-                            onPressed: () => scanBarcodeNormal(),
-                            child: Text('Start barcode scan')),
+                          onPressed: () => scanBarcodeNormal(),
+                          child: Text('Start barcode scan'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                        ),
                         ElevatedButton(
-                            onPressed: () => scanQR(),
-                            child: Text('Start QR scan')),
+                          onPressed: () => scanQR(),
+                          child: Text('Start QR scan'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                        ),
                         ElevatedButton(
-                            onPressed: () => startBarcodeScanStream(),
-                            child: Text('Start barcode scan stream')),
+                          onPressed: () => startBarcodeScanStream(),
+                          child: Text('Start barcode scan stream'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                        ),
                         Text('Scan result : $_scanBarcode\n',
                             style: TextStyle(fontSize: 20))
                       ]));

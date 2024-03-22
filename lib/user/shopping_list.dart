@@ -199,7 +199,7 @@ class ShoppingListWidget extends StatefulWidget {
 
   void updateGlobalBeaconCoordinates(List<dynamic> beaconData) {
     for (var beacon in beaconData) {
-      String id = beacon['id'];
+      //String id = beacon['id'];
       String mac = beacon['mac'].toString().toUpperCase();
       double x = beacon['x'].toDouble();
       double y = beacon['y'].toDouble();

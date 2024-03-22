@@ -90,7 +90,7 @@ class BLEScanner extends State<BLEScannerWidget> {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
-        withKeywords: [ '26268'],
+        withKeywords: [ '26268','10002','10000'],
         continuousUpdates: true,
         continuousDivisor: 3,
         removeIfGone: Duration(minutes: 2),
