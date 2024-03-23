@@ -10,8 +10,8 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   runApp(MyApp());
-  //BLEScanner bleScanner = BLEScanner();
-  //bleScanner.startScan();
+  BLEScanner bleScanner = BLEScanner();
+  bleScanner.startScan();
 }
 
 class MyApp extends StatelessWidget {

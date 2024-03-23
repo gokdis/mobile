@@ -46,7 +46,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
   Future<void> login() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -76,6 +75,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200 ||
           response.statusCode == 403 ||
           response.statusCode == 204) {
+        await prefs.setBool('isLoggedIn', true);
         navigateToShoppingList();
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");

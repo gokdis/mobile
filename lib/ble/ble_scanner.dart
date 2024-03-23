@@ -4,8 +4,10 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
 import 'package:gokdis/ble/stream_controller.dart';
 import 'package:gokdis/settings.dart';
-import 'package:provider/provider.dart';
-import 'package:gokdis/user/shopping_list.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ble {
   //String id;
@@ -54,9 +56,11 @@ class BLEScannerWidget extends StatefulWidget {
 
 class BLEScanner extends State<BLEScannerWidget> {
   Map<ble, List<int>> deviceRssiValues = {};
+  bool loggedinstatus = false;
   // user x,y
   double x = 0.0;
   double y = 0.0;
+
   // user x,y
   double distance = 0.0;
   StreamSubscription<ScanResultEvent>? scanSubscription;
@@ -90,7 +94,7 @@ class BLEScanner extends State<BLEScannerWidget> {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
-        withKeywords: [ '26268','10002','10000'],
+        withKeywords: ['26268', '10002', '10000'],
         continuousUpdates: true,
         continuousDivisor: 3,
         removeIfGone: Duration(minutes: 2),
@@ -149,13 +153,12 @@ class BLEScanner extends State<BLEScannerWidget> {
         deviceRssiValues[BLE]!.add(result.rssi);
 
         if (deviceRssiValues[BLE]!.length > 10) {
-          
           deviceRssiValues[BLE]!.removeAt(0);
         }
 
         if (deviceRssiValues[BLE]!.length == 10) {
           List<int> _sortedValues = List<int>.from(deviceRssiValues[BLE]!);
-           // ..sort();
+          // ..sort();
 
           double mean =
               _sortedValues.reduce((a, b) => a + b) / _sortedValues.length;
@@ -192,11 +195,9 @@ class BLEScanner extends State<BLEScannerWidget> {
             if (nearestDevices.length >= 3) {
               trilateration(
                   nearestDevices[0], nearestDevices[1], nearestDevices[2]);
-
             } else {
               print("Not enough devices for trilateration");
             }
-           
           } else {
             print("List is empty after filtering");
           }
@@ -208,7 +209,6 @@ class BLEScanner extends State<BLEScannerWidget> {
       print('Error during scanning: $error');
     });
   }
-
 
   void trilateration(ble beacon1, ble beacon2, ble beacon3) {
     if (beacon1.distance <= 0 ||
@@ -247,8 +247,64 @@ class BLEScanner extends State<BLEScannerWidget> {
 
     x = (C * E - F * B) / (E * A - B * D);
     y = (C * D - A * F) / (B * D - A * E);
+    //int x_int = x.toInt();
+    //int y_int = y.toInt();
+
     onScanResultReceived(x, y);
+
     print('x: $x y: $y');
+    sendCoordinatesToBackend(x, y);
+  }
+
+  Future<bool> isLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool('isLoggedIn') ?? false;
+  }
+
+  Future<void> sendCoordinatesToBackend(double x, double y) async {
+    loggedinstatus = await isLoggedIn();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    String url = Settings.instance.getUrl('position');
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
+    String currentTime = DateTime.now().toIso8601String();
+
+    Map<String, dynamic> payload = {
+      'email': email,
+      'x': x,
+      'y': y,
+      'time': currentTime,
+    };
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      if (loggedinstatus) {
+        final response = await http.post(
+          Uri.parse(url),
+          headers: requestHeaders,
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          print('Coordinates sent successfully : $x $y');
+        } else {
+          print(
+              'Failed to send coordinates. Status code: ${response.statusCode}');
+        }
+      } else {
+        print("not logged in");
+      }
+    } catch (e) {
+      print('Error sending coordinates: $e');
+    }
   }
 
   @override
