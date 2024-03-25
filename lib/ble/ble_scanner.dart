@@ -80,6 +80,17 @@ class BLEScanner extends State<BLEScannerWidget> {
         'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
   }
 
+  String generateRandomUuid() {
+  final random = Random();
+  final hexChars = '0123456789abcdef';
+  final buffer = StringBuffer();
+  for (int i = 0; i < 32; i++) {
+    buffer.write(hexChars[random.nextInt(16)]);
+  }
+  
+  return buffer.toString().replaceRange(8, 8, '-').replaceRange(13, 13, '-').replaceRange(18, 18, '-').replaceRange(23, 23, '-');
+}
+
   @override
   void dispose() {
     scanSubscription?.cancel();
@@ -247,13 +258,13 @@ class BLEScanner extends State<BLEScannerWidget> {
 
     x = (C * E - F * B) / (E * A - B * D);
     y = (C * D - A * F) / (B * D - A * E);
-    //int x_int = x.toInt();
-    //int y_int = y.toInt();
+    int x_int = x.toInt();
+    int y_int = y.toInt();
 
     onScanResultReceived(x, y);
 
     print('x: $x y: $y');
-    sendCoordinatesToBackend(x, y);
+    sendCoordinatesToBackend(x_int, y_int);
   }
 
   Future<bool> isLoggedIn() async {
@@ -262,18 +273,21 @@ class BLEScanner extends State<BLEScannerWidget> {
     return prefs.getBool('isLoggedIn') ?? false;
   }
 
-  Future<void> sendCoordinatesToBackend(double x, double y) async {
+  Future<void> sendCoordinatesToBackend(int x, int y) async {
     loggedinstatus = await isLoggedIn();
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    String uuid = generateRandomUuid();
 
     String url = Settings.instance.getUrl('position');
     String? email = prefs.getString('email');
+    print("email $email" );
     String? password = prefs.getString('password');
     String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
     String currentTime = DateTime.now().toIso8601String();
 
     Map<String, dynamic> payload = {
-      'email': email,
+      'id': uuid,
+      'personEmail': email,
       'x': x,
       'y': y,
       'time': currentTime,

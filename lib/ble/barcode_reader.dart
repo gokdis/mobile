@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:gokdis/settings.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BarcodeReader extends StatefulWidget {
   @override
@@ -10,11 +14,13 @@ class BarcodeReader extends StatefulWidget {
 
 class BarcodeReaderState extends State<BarcodeReader> {
   String _scanBarcode = 'Unknown';
-  List<String> _basketItems = []; 
-
+  List<String> _basketItems = [];
+  late String prodcuts;
+  List<Map<String, String>> _productList = [];
   @override
   void initState() {
     super.initState();
+    getProducts();
   }
 
   Future<void> startBarcodeScanStream() async {
@@ -24,7 +30,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
       print(barcode);
       if (!mounted) return;
       setState(() {
-        _basketItems.add(barcode); 
+        _basketItems.add(barcode);
       });
     });
   }
@@ -43,7 +49,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
 
     setState(() {
       _scanBarcode = barcodeScanRes;
-      _basketItems.add(barcodeScanRes); 
+      _basketItems.add(barcodeScanRes);
     });
   }
 
@@ -61,8 +67,46 @@ class BarcodeReaderState extends State<BarcodeReader> {
 
     setState(() {
       _scanBarcode = barcodeScanRes;
-      _basketItems.add(barcodeScanRes); 
+      _basketItems.add(barcodeScanRes);
     });
+  }
+
+  Future<void> getProducts() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    String url = Settings.instance.getUrl('product');
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: requestHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> responseBody = json.decode(response.body);
+        _productList = responseBody
+            .map((product) => {
+                  'id': product['id'].toString(),
+                  'name': product['name'].toString(),
+                  'price': product['price'].toString(),
+                })
+            .toList();
+        print(_productList);
+      } else {
+        print("Failed to fetch data. Status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error occurred while fetching data: $error");
+    }
   }
 
   @override
@@ -83,11 +127,28 @@ class BarcodeReaderState extends State<BarcodeReader> {
                           title: Text("Basket"),
                           content: SingleChildScrollView(
                             child: ListBody(
-                              children: _basketItems.map((item) => Text(item)).toList(),
+                              children: _basketItems.map((item) {
+                                var matchingProduct = _productList.firstWhere(
+                                  (product) => product['id'] == item,
+                                  orElse: () => {
+                                    'name': 'Unknown Product',
+                                    'price': '0'
+                                  }, 
+                                );
+                               
+                                return Text(
+                                    '${matchingProduct['name']} - ${matchingProduct['price']}');
+                              }).toList(),
                             ),
                           ),
                           actions: <Widget>[
                             TextButton(
+                              child: Text('Buy'),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                               TextButton(
                               child: Text('Close'),
                               onPressed: () {
                                 Navigator.of(context).pop();

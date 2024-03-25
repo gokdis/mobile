@@ -11,7 +11,7 @@ void main() async {
 
   runApp(MyApp());
   BLEScanner bleScanner = BLEScanner();
-  bleScanner.startScan();
+  //bleScanner.startScan();
 }
 
 class MyApp extends StatelessWidget {
