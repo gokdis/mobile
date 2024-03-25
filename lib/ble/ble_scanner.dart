@@ -81,15 +81,20 @@ class BLEScanner extends State<BLEScannerWidget> {
   }
 
   String generateRandomUuid() {
-  final random = Random();
-  final hexChars = '0123456789abcdef';
-  final buffer = StringBuffer();
-  for (int i = 0; i < 32; i++) {
-    buffer.write(hexChars[random.nextInt(16)]);
+    final random = Random();
+    final hexChars = '0123456789abcdef';
+    final buffer = StringBuffer();
+    for (int i = 0; i < 32; i++) {
+      buffer.write(hexChars[random.nextInt(16)]);
+    }
+
+    return buffer
+        .toString()
+        .replaceRange(8, 8, '-')
+        .replaceRange(13, 13, '-')
+        .replaceRange(18, 18, '-')
+        .replaceRange(23, 23, '-');
   }
-  
-  return buffer.toString().replaceRange(8, 8, '-').replaceRange(13, 13, '-').replaceRange(18, 18, '-').replaceRange(23, 23, '-');
-}
 
   @override
   void dispose() {
@@ -264,7 +269,7 @@ class BLEScanner extends State<BLEScannerWidget> {
     onScanResultReceived(x, y);
 
     print('x: $x y: $y');
-    sendCoordinatesToBackend(x_int, y_int);
+    //sendCoordinatesToBackend(x_int, y_int);
   }
 
   Future<bool> isLoggedIn() async {
@@ -280,7 +285,7 @@ class BLEScanner extends State<BLEScannerWidget> {
 
     String url = Settings.instance.getUrl('position');
     String? email = prefs.getString('email');
-    print("email $email" );
+    print("email $email");
     String? password = prefs.getString('password');
     String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
     String currentTime = DateTime.now().toIso8601String();
@@ -338,14 +343,42 @@ class BLEScanner extends State<BLEScannerWidget> {
               width: double.infinity,
             ),
             Positioned(
-              left: x * 16,
-              top: y * 16,
+              left:x * 5,
+              top: y * 4.8,
               child: Icon(
                 Icons.location_on,
-                color: Colors.orange,
-                size: 25,
+                color: Colors.amber,
+                size: 10,
               ),
             ),
+            Positioned(
+              left: 17 * 5,
+              top: 41* 4.8,
+              child: Icon(
+                Icons.location_on,
+                color: Colors.red,
+                size: 2,
+              ),
+            ),
+            Positioned(
+              left: 36 * 5,
+              top: 41 * 4.8,
+              child: Icon(
+                Icons.location_on,
+                color: Colors.red,
+                size: 2,
+              ),
+            ),
+            Positioned(
+              left: 27 * 5,
+              top: 49 * 4.8,
+              child: Icon(
+                Icons.location_on,
+                color: Colors.red,
+                size: 2,
+              ),
+            ),
+            Text("x: $x , y: $y", )
           ],
         ),
       ),

@@ -54,7 +54,7 @@ class _LoginPageState extends State<LoginPage> {
 
     prefs.setBool('rememberMe', _rememberMe);
 
-    String url = Settings.instance.getUrl('beacon/c7:10:69:07:fb:51');
+    String url = Settings.instance.getUrl('beacon/C7:10:69:07:FB:51');
 
     email = _usernameController.text;
     password = _passwordController.text;

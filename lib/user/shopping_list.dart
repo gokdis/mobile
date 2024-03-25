@@ -188,7 +188,7 @@ class ShoppingListWidget extends StatefulWidget {
             .setBeaconData(beaconData);
          //   print('before update : $beaconData');
         updateGlobalBeaconCoordinates(beaconData);
-       // print('After updat e: ${Settings.globalBeaconCoordinates}');
+        print('After updat e: ${Settings.globalBeaconCoordinates}');
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
       }
