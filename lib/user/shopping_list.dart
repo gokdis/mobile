@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:gokdis/settings.dart';
 
+import '../ble/deneme.dart';
+
 class BeaconProvider with ChangeNotifier {
   List<dynamic> _beaconData = [];
 
@@ -212,7 +214,7 @@ class ShoppingListWidget extends StatefulWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BLEScannerWidget(),
+        builder: (context) => BLEScannerWidget1(),
       ),
     );
   }
