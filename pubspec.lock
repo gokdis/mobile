@@ -217,7 +217,7 @@ packages:
     source: hosted
     version: "1.11.0"
   ml_linalg:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: ml_linalg
       sha256: "304cb8a2a172f2303226d672d0b6f18dbfe558e2db49d27c8aa9f3e15475c0cd"

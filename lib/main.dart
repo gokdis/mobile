@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:gokdis/ble/deneme.dart';
 import 'user/login.dart';
 import 'package:gokdis/user/shopping_list.dart';
 import 'package:provider/provider.dart';
@@ -10,8 +11,9 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   runApp(MyApp());
+  Deneme deneme = Deneme();
   BLEScanner bleScanner = BLEScanner();
-  bleScanner.startScan();
+  deneme.startScan();
 }
 
 class MyApp extends StatelessWidget {
