@@ -1,4 +1,4 @@
-import 'dart:async';
+/* import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:math';
@@ -39,15 +39,6 @@ class ble {
   } */
 }
 
-class Coordinates {
-  double x;
-  double y;
-  Coordinates(this.x, this.y);
-  @override
-  String toString() {
-    return 'x: $x, y: $y';
-  }
-}
 
 class BLEScannerWidget extends StatefulWidget {
   @override
@@ -385,3 +376,4 @@ class BLEScanner extends State<BLEScannerWidget> {
     );
   }
 }
+ */

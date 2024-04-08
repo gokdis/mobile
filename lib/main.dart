@@ -4,7 +4,6 @@ import 'package:gokdis/ble/deneme.dart';
 import 'user/login.dart';
 import 'package:gokdis/user/shopping_list.dart';
 import 'package:provider/provider.dart';
-import 'ble/ble_scanner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +11,6 @@ void main() async {
 
   runApp(MyApp());
   Deneme deneme = Deneme();
-  BLEScanner bleScanner = BLEScanner();
   deneme.startScan();
 }
 

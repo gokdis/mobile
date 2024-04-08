@@ -31,7 +31,10 @@ class Deneme extends State<BLEScannerWidget1> {
   Map<RealBeacon, List<int>> deviceRssiValues = {};
   List<RealBeacon> nearestDevices = [];
   Point userLocation = Point(0, 0);
+  static Map<String, Point> beaconCoordinates = {};
 
+  double x = 0.0;
+  double y = 0.0;
   @override
   void initState() {
     super.initState();
@@ -40,6 +43,7 @@ class Deneme extends State<BLEScannerWidget1> {
         userLocation = Point(event.x, event.y);
       });
     });
+    print(beaconCoordinates);
 
     startScan();
 
@@ -53,7 +57,7 @@ class Deneme extends State<BLEScannerWidget1> {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
-        //withKeywords: ['26268', '10002', '10000'],
+        withKeywords: ['26268', '10002', '10000'],
         continuousUpdates: true,
         continuousDivisor: 3,
         removeIfGone: Duration(minutes: 2),
@@ -107,23 +111,26 @@ class Deneme extends State<BLEScannerWidget1> {
  */
 
   void getRSSI() {
-    Random random = Random();
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
 
-        //Create random position for beacons
-        //TODO: Set beacon positions from database and remove random
-        double r1 = random.nextDouble() * 10;
-        double r2 = random.nextDouble() * 10;
-        RealBeacon beacon = RealBeacon(deviceMAC, 'Name', Point(r1, r2));
-        updateDeviceRssiValues(beacon, result.rssi);
+        beaconCoordinates = Settings.globalBeaconCoordinates;
+
+        Point? point = beaconCoordinates[deviceMAC];
+
+        if (point != null) {
+          RealBeacon beacon = RealBeacon(deviceMAC, 'name', Point(point.x, point.y));
+          updateDeviceRssiValues(beacon, result.rssi);
+        } 
       }
 
+      print(deviceRssiValues);
+      
       //Calculate user location with filter
       //Initialize calculator
       Calculator calculator = LMA();
-
+      
       //Very basic models for unscented Kalman filter
       Matrix fxUserLocation(Matrix x, double dt, List? args) {
         List<double> list = [
@@ -152,24 +159,15 @@ class Deneme extends State<BLEScannerWidget1> {
       //Calculate user location
       if (nearestDevices.length == 3) {
         tracker.initiateTrackingCycle(nearestDevices);
-        userLocation = tracker.finalPosition;
+        userLocation = tracker.calculatedPosition; //finalPosition
+        onScanResultReceived(userLocation.x, userLocation.y);
+
         print("User location: $userLocation");
+
       } else {
         print("Not enough devices for calculation");
       }
-
-      /* Calculate user location without filter
-      print("<------------Nearest Devices------------>");
-      print(nearestDevices);
-
-      if (nearestDevices.length == 3) {
-        userLocation = calculator.calculate(nearestDevices);
-        print("User position: $userLocation");
-      } else {
-        print("Not enough devices for calculation");
-      }
-      print("<--------------------------------------->");
-      */
+      
     });
 
     FlutterBluePlus.scanResults.handleError((error) {
@@ -241,13 +239,12 @@ class Deneme extends State<BLEScannerWidget1> {
               fit: BoxFit.contain,
             ),
             Positioned(
-              //TODO: Show userLocation on the map
-              left: calculateX(1, context),
-              top: calculateY(1, context),
+              left: calculateX(userLocation.x, context),
+              top: calculateY(userLocation.y, context),
               child: Icon(
                 Icons.location_on,
                 color: Colors.amber,
-                size: 3, 
+                size: 10,
               ),
             ),
             Positioned(
@@ -256,7 +253,7 @@ class Deneme extends State<BLEScannerWidget1> {
               child: Icon(
                 Icons.location_on,
                 color: Colors.red,
-                size: 3,
+                size: 10,
               ),
             ),
             Positioned(
@@ -265,7 +262,7 @@ class Deneme extends State<BLEScannerWidget1> {
               child: Icon(
                 Icons.location_on,
                 color: Colors.red,
-                size: 3, 
+                size: 10,
               ),
             ),
             Positioned(
@@ -274,7 +271,7 @@ class Deneme extends State<BLEScannerWidget1> {
               child: Icon(
                 Icons.location_on,
                 color: Colors.red,
-                size: 3,
+                size: 10,
               ),
             ),
           ],
@@ -284,13 +281,13 @@ class Deneme extends State<BLEScannerWidget1> {
   }
 
   // Function to calculate X position based on grid position
-  double calculateX(int gridX, BuildContext context) {
+  double calculateX(double gridX, BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     return (gridX * 16.35 * screenWidth) / 1343;
   }
 
   // Function to calculate Y position based on grid position
-  double calculateY(int gridY, BuildContext context) {
+  double calculateY(double gridY, BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     return (gridY * 15.7 * screenHeight) / 2834;
   }

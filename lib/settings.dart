@@ -1,5 +1,6 @@
+import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'ble/ble_scanner.dart';
+
 
 class Settings {
   Settings._privateConstructor();
@@ -7,7 +8,7 @@ class Settings {
   static final Settings _instance = Settings._privateConstructor();
 
   static Settings get instance => _instance;
-  static Map<String, Coordinates> globalBeaconCoordinates = {};
+  static Map<String, Point> globalBeaconCoordinates = {};
   late String _baseUrl;
 
   void _initBaseUrl() {

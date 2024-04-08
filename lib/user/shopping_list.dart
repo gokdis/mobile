@@ -1,6 +1,6 @@
+import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:flutter/material.dart';
 import 'package:gokdis/user/special_offer.dart';
-import 'package:gokdis/ble/ble_scanner.dart';
 import 'package:gokdis/ble/barcode_reader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -201,11 +201,11 @@ class ShoppingListWidget extends StatefulWidget {
 
   void updateGlobalBeaconCoordinates(List<dynamic> beaconData) {
     for (var beacon in beaconData) {
-      //String id = beacon['id'];
+     // String id = beacon['id'];
       String mac = beacon['mac'].toString().toUpperCase();
       double x = beacon['x'].toDouble();
       double y = beacon['y'].toDouble();
-      Settings.globalBeaconCoordinates[mac] = Coordinates(x, y);
+      Settings.globalBeaconCoordinates[mac] = Point(x, y);
     }
   }
   // Navigation functions
