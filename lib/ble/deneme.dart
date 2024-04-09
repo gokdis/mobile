@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:async';
+
+import 'package:http/http.dart' as http;
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:epitaph_ips/epitaph_ips/positioning_system/mock_beacon.dart';
@@ -12,11 +15,13 @@ import 'package:epitaph_ips/epitaph_ips/tracking/simple_ukf.dart';
 import 'package:epitaph_ips/epitaph_ips/tracking/tracker.dart';
 import 'package:epitaph_ips/epitaph_ips/tracking/calculator.dart';
 import 'package:ml_linalg/matrix.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:gokdis/ble/stream_controller.dart';
 import 'package:gokdis/settings.dart';
+import 'package:gokdis/user/login.dart';
 
 class BLEScannerWidget1 extends StatefulWidget {
   @override
@@ -32,6 +37,7 @@ class Deneme extends State<BLEScannerWidget1> {
   List<RealBeacon> nearestDevices = [];
   Point userLocation = Point(0, 0);
   static Map<String, Point> beaconCoordinates = {};
+  bool loggedinstatus = false;
 
   double x = 0.0;
   double y = 0.0;
@@ -120,17 +126,18 @@ class Deneme extends State<BLEScannerWidget1> {
         Point? point = beaconCoordinates[deviceMAC];
 
         if (point != null) {
-          RealBeacon beacon = RealBeacon(deviceMAC, 'name', Point(point.x, point.y));
+          RealBeacon beacon =
+              RealBeacon(deviceMAC, 'name', Point(point.x, point.y));
           updateDeviceRssiValues(beacon, result.rssi);
-        } 
+        }
       }
 
       print(deviceRssiValues);
-      
+
       //Calculate user location with filter
       //Initialize calculator
       Calculator calculator = LMA();
-      
+
       //Very basic models for unscented Kalman filter
       Matrix fxUserLocation(Matrix x, double dt, List? args) {
         List<double> list = [
@@ -161,13 +168,11 @@ class Deneme extends State<BLEScannerWidget1> {
         tracker.initiateTrackingCycle(nearestDevices);
         userLocation = tracker.calculatedPosition; //finalPosition
         onScanResultReceived(userLocation.x, userLocation.y);
-
+        sendCoordinatesToBackend(userLocation.x.toInt(), userLocation.y.toInt());
         print("User location: $userLocation");
-
       } else {
         print("Not enough devices for calculation");
       }
-      
     });
 
     FlutterBluePlus.scanResults.handleError((error) {
@@ -222,6 +227,75 @@ class Deneme extends State<BLEScannerWidget1> {
       int averageRssiInt = averageRssi.toInt();
       beacon.rssiUpdate(averageRssiInt); // Call rssiUpdate
     });
+  }
+    String generateRandomUuid() {
+    final random = Random();
+    final hexChars = '0123456789abcdef';
+    final buffer = StringBuffer();
+    for (int i = 0; i < 32; i++) {
+      buffer.write(hexChars[random.nextInt(16)]);
+    }
+
+    return buffer
+        .toString()
+        .replaceRange(8, 8, '-')
+        .replaceRange(13, 13, '-')
+        .replaceRange(18, 18, '-')
+        .replaceRange(23, 23, '-');
+  }
+
+
+  Future<bool> isLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool('isLoggedIn') ?? false;
+  }
+
+  Future<void> sendCoordinatesToBackend(int x, int y) async {
+    loggedinstatus = await isLoggedIn();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String uuid = generateRandomUuid();
+
+    String url = Settings.instance.getUrl('position');
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
+    String currentTime = DateTime.now().toIso8601String();
+
+    Map<String, dynamic> payload = {
+      'id': uuid,
+      'personEmail': email,
+      'x': x,
+      'y': y,
+      'time': currentTime,
+    };
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      if (loggedinstatus) {
+        final response = await http.post(
+          Uri.parse(url),
+          headers: requestHeaders,
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          print('Coordinates sent successfully : $x $y');
+        } else {
+          print(
+              'Failed to send coordinates. Status code: ${response.statusCode}');
+        }
+      } else {
+        print("not logged in");
+      }
+    } catch (e) {
+      print('Error sending coordinates: $e');
+    }
   }
 
   @override
