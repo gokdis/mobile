@@ -163,12 +163,16 @@ class Deneme extends State<BLEScannerWidget1> {
       //Initialize tracker
       Tracker tracker = Tracker(calculator, filter);
 
+      //Mock customer
+      startMockCustomer();
+
       //Calculate user location
       if (nearestDevices.length == 3) {
         tracker.initiateTrackingCycle(nearestDevices);
         userLocation = tracker.calculatedPosition; //finalPosition
         onScanResultReceived(userLocation.x, userLocation.y);
-        sendCoordinatesToBackend(userLocation.x.toInt(), userLocation.y.toInt());
+        sendCoordinatesToBackend(
+            userLocation.x.toInt(), userLocation.y.toInt());
         print("User location: $userLocation");
       } else {
         print("Not enough devices for calculation");
@@ -228,7 +232,8 @@ class Deneme extends State<BLEScannerWidget1> {
       beacon.rssiUpdate(averageRssiInt); // Call rssiUpdate
     });
   }
-    String generateRandomUuid() {
+
+  String generateRandomUuid() {
     final random = Random();
     final hexChars = '0123456789abcdef';
     final buffer = StringBuffer();
@@ -243,7 +248,6 @@ class Deneme extends State<BLEScannerWidget1> {
         .replaceRange(18, 18, '-')
         .replaceRange(23, 23, '-');
   }
-
 
   Future<bool> isLoggedIn() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -296,6 +300,55 @@ class Deneme extends State<BLEScannerWidget1> {
     } catch (e) {
       print('Error sending coordinates: $e');
     }
+  }
+
+  void startMockCustomer() {
+    int phase = 0; // 0 - right, 1 - down, 2 - left, 3 - up
+    int timeCounter = 0;
+    userLocation = Point(14, 43);
+
+    Timer.periodic(Duration(milliseconds: 1000), (timer) {
+      setState(() {
+        switch (phase) {
+          case 0: // Walking right
+            if (timeCounter < 46) {
+              userLocation = Point(userLocation.x + 1, userLocation.y);
+              timeCounter++;
+            } else {
+              phase = 1;
+              timeCounter = 0;
+            }
+            break;
+          case 1: // Walking down
+            if (timeCounter < 8) {
+              userLocation = Point(userLocation.x, userLocation.y + 1);
+              timeCounter++;
+            } else {
+              phase = 2;
+              timeCounter = 0;
+            }
+            break;
+          case 2: // Walking left
+            if (timeCounter < 46) {
+              userLocation = Point(userLocation.x - 1, userLocation.y);
+              timeCounter++;
+            } else {
+              phase = 3;
+              timeCounter = 0;
+            }
+            break;
+          case 3: // Walking up
+            if (timeCounter < 8) {
+              userLocation = Point(userLocation.x, userLocation.y - 1);
+              timeCounter++;
+            } else {
+              phase = 0;
+              timeCounter = 0;
+            }
+            break;
+        }
+      });
+    });
   }
 
   @override
