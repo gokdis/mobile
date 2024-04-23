@@ -39,5 +39,5 @@ flutter:
 
   uses-material-design: true
   assets:
-    - assets/images/s.png
+    - assets/images/supermarket.png
     - .env

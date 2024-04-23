@@ -23,6 +23,13 @@ import 'package:gokdis/ble/stream_controller.dart';
 import 'package:gokdis/settings.dart';
 import 'package:gokdis/user/login.dart';
 
+class Aisle {
+  final String name;
+  Point coordinates;
+
+  Aisle(this.name, this.coordinates);
+}
+
 class BLEScannerWidget1 extends StatefulWidget {
   @override
   Deneme createState() => Deneme();
@@ -39,11 +46,26 @@ class Deneme extends State<BLEScannerWidget1> {
   static Map<String, Point> beaconCoordinates = {};
   bool loggedinstatus = false;
 
+  // TODO: Populate aisle list from database
+  List<Aisle> aisleCoordinates = [
+    Aisle('Deli', Point(280, 640)),
+    Aisle('Snack', Point(36, 41)),
+    Aisle('Bakery', Point(27, 49)),
+  ];
+
+  Map<String, bool> aisleMarkersVisibility = {};
+
   double x = 0.0;
   double y = 0.0;
   @override
   void initState() {
     super.initState();
+
+    // Make aisle markers invisible
+    aisleCoordinates.forEach((aisle) {
+      aisleMarkersVisibility[aisle.name] = false;
+    });
+
     scanSubscription = scanResultStream.listen((ScanResultEvent event) {
       setState(() {
         userLocation = Point(event.x, event.y);
@@ -52,10 +74,20 @@ class Deneme extends State<BLEScannerWidget1> {
     print(beaconCoordinates);
 
     startScan();
-
+    //startAisleMovement();
     print(
         'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
   }
+
+  void startAisleMovement() {
+  Timer.periodic(Duration(milliseconds: 200), (timer) {
+    setState(() {
+      aisleCoordinates[0].coordinates = Point(aisleCoordinates[0].coordinates.x, aisleCoordinates[0].coordinates.y + 1);
+
+      print(aisleCoordinates[0].coordinates);
+    });
+  });
+}
 
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
@@ -365,6 +397,20 @@ class Deneme extends State<BLEScannerWidget1> {
               "assets/images/supermarket.png",
               fit: BoxFit.contain,
             ),
+            // Display aisle markers
+            for (var aisle in aisleCoordinates)
+              if (aisleMarkersVisibility[aisle.name] == true)
+                Positioned(
+                  left: calculateX(aisle.coordinates.x, context),
+                  top: calculateY(aisle.coordinates.y, context),
+                  child: Container(
+                    width: 1, 
+                    height: 1, 
+                    color:
+                        Colors.blue.withOpacity(1), 
+                  ),
+                ),
+            // Display user location marker
             Positioned(
               left: calculateX(userLocation.x, context),
               top: calculateY(userLocation.y, context),
@@ -374,48 +420,41 @@ class Deneme extends State<BLEScannerWidget1> {
                 size: 10,
               ),
             ),
-            Positioned(
-              left: calculateX(17, context),
-              top: calculateY(41, context),
-              child: Icon(
-                Icons.location_on,
-                color: Colors.red,
-                size: 10,
-              ),
-            ),
-            Positioned(
-              left: calculateX(36, context),
-              top: calculateY(41, context),
-              child: Icon(
-                Icons.location_on,
-                color: Colors.red,
-                size: 10,
-              ),
-            ),
-            Positioned(
-              left: calculateX(27, context),
-              top: calculateY(49, context),
-              child: Icon(
-                Icons.location_on,
-                color: Colors.red,
-                size: 10,
-              ),
-            ),
           ],
         ),
+      ),
+      // Add aisle buttons
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          for (var aisle in aisleCoordinates)
+            FloatingActionButton(
+              onPressed: () {
+                // Toggle the visibility of the aisle marker
+                setState(() {
+                  aisleMarkersVisibility[aisle.name] =
+                      !aisleMarkersVisibility[aisle.name]!;
+                });
+              },
+              child: Text(aisle.name),
+            ),
+        ],
       ),
     );
   }
 
   // Function to calculate X position based on grid position
   double calculateX(double gridX, BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    return (gridX * 16.35 * screenWidth) / 1343;
+    //double screenWidth = MediaQuery.of(context).size.width;
+    //return (gridX * 16.35 * screenWidth) / 1343;
+    return gridX / 3.42;
   }
 
   // Function to calculate Y position based on grid position
   double calculateY(double gridY, BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
-    return (gridY * 15.7 * screenHeight) / 2834;
+    //double screenHeight = MediaQuery.of(context).size.height;
+    //return (gridY * 15.7 * screenHeight) / 2834;
+    return gridY / 3.42;
   }
 }
