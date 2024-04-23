@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:async';
 
+import 'package:gokdis/ble/deneme.dart';
+import 'package:gokdis/ble/deneme.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
@@ -28,6 +30,10 @@ class Aisle {
   Point coordinates;
 
   Aisle(this.name, this.coordinates);
+  @override
+  String toString() {
+    return 'Aisle(name: $name, coordinates: $coordinates)';
+  }
 }
 
 class BLEScannerWidget1 extends StatefulWidget {
@@ -47,11 +53,8 @@ class Deneme extends State<BLEScannerWidget1> {
   bool loggedinstatus = false;
 
   // TODO: Populate aisle list from database
-  List<Aisle> aisleCoordinates = [
-    Aisle('Deli', Point(280, 640)),
-    Aisle('Snack', Point(36, 41)),
-    Aisle('Bakery', Point(27, 49)),
-  ];
+  List<Aisle> aisleCoordinates = [];
+  List<dynamic> aisleData = [];
 
   Map<String, bool> aisleMarkersVisibility = {};
 
@@ -60,7 +63,7 @@ class Deneme extends State<BLEScannerWidget1> {
   @override
   void initState() {
     super.initState();
-
+    getAisles();
     // Make aisle markers invisible
     aisleCoordinates.forEach((aisle) {
       aisleMarkersVisibility[aisle.name] = false;
@@ -79,15 +82,65 @@ class Deneme extends State<BLEScannerWidget1> {
         'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
   }
 
-  void startAisleMovement() {
-  Timer.periodic(Duration(milliseconds: 200), (timer) {
-    setState(() {
-      aisleCoordinates[0].coordinates = Point(aisleCoordinates[0].coordinates.x, aisleCoordinates[0].coordinates.y + 1);
+  Future<void> getAisles() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String url = Settings.instance.getUrl('cell/all');
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
 
-      print(aisleCoordinates[0].coordinates);
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: requestHeaders);
+
+      if (response.statusCode == 200) {
+        print(response.body);
+        var jsonResponse = jsonDecode(response.body);
+        if (jsonResponse is List) {
+          updateAisle(jsonResponse);
+        }
+        print('After update: ${aisleCoordinates.length}');
+      } else {
+        print("Failed to fetch data. Status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error occurred while fetching data: $error");
+    }
+  }
+
+  void updateAisle(List<dynamic> aisleData) {
+    List<Aisle> newAisles = [];
+    Set<String> ids = Set();
+
+    for (var aisle in aisleData) {
+      String id = aisle['sectionId'].toString();
+      if (!ids.contains(id)) {
+        double x = aisle['x'].toDouble();
+        double y = aisle['y'].toDouble();
+        newAisles.add(Aisle(id, Point(x, y)));
+        ids.add(id);
+      }
+    }
+
+    aisleCoordinates = newAisles; 
+  }
+
+  void startAisleMovement() {
+    Timer.periodic(Duration(milliseconds: 200), (timer) {
+      setState(() {
+        aisleCoordinates[0].coordinates = Point(
+            aisleCoordinates[0].coordinates.x,
+            aisleCoordinates[0].coordinates.y + 1);
+
+        print(aisleCoordinates[0].coordinates);
+      });
     });
-  });
-}
+  }
 
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
@@ -196,15 +249,14 @@ class Deneme extends State<BLEScannerWidget1> {
       Tracker tracker = Tracker(calculator, filter);
 
       //Mock customer
-      startMockCustomer();
+      // startMockCustomer();
 
       //Calculate user location
       if (nearestDevices.length == 3) {
         tracker.initiateTrackingCycle(nearestDevices);
         userLocation = tracker.calculatedPosition; //finalPosition
         onScanResultReceived(userLocation.x, userLocation.y);
-        sendCoordinatesToBackend(
-            userLocation.x.toInt(), userLocation.y.toInt());
+
         print("User location: $userLocation");
       } else {
         print("Not enough devices for calculation");
@@ -288,6 +340,7 @@ class Deneme extends State<BLEScannerWidget1> {
   }
 
   Future<void> sendCoordinatesToBackend(int x, int y) async {
+    // call this in if(nearestdevices.length==3)
     loggedinstatus = await isLoggedIn();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String uuid = generateRandomUuid();
@@ -332,6 +385,12 @@ class Deneme extends State<BLEScannerWidget1> {
     } catch (e) {
       print('Error sending coordinates: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    scanSubscription?.cancel();
+    super.dispose();
   }
 
   void startMockCustomer() {
@@ -404,10 +463,9 @@ class Deneme extends State<BLEScannerWidget1> {
                   left: calculateX(aisle.coordinates.x, context),
                   top: calculateY(aisle.coordinates.y, context),
                   child: Container(
-                    width: 1, 
-                    height: 1, 
-                    color:
-                        Colors.blue.withOpacity(1), 
+                    width: 1,
+                    height: 1,
+                    color: Colors.blue.withOpacity(1),
                   ),
                 ),
             // Display user location marker
@@ -437,7 +495,7 @@ class Deneme extends State<BLEScannerWidget1> {
                       !aisleMarkersVisibility[aisle.name]!;
                 });
               },
-              child: Text(aisle.name),
+              // child: Text(aisle.name),
             ),
         ],
       ),
