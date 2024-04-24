@@ -129,7 +129,7 @@ class Deneme extends State<BLEScannerWidget1> {
     List<Aisle> newAisles = [];
 
     for (var aisle in aisleData) {
-      String id = aisle['sectionId'].toString();
+      String id = aisle['name'].toString();
       double x = aisle['x'].toDouble();
       double y = aisle['y'].toDouble();
       newAisles.add(Aisle(id, Point(x, y)));
