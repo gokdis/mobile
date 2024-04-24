@@ -22,7 +22,7 @@ import 'package:ml_linalg/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/material.dart';
-//import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:gokdis/ble/stream_controller.dart';
 import 'package:gokdis/settings.dart';
 import 'package:gokdis/user/login.dart';
@@ -155,7 +155,7 @@ class Deneme extends State<BLEScannerWidget1> {
 
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
-  /* void startScan() async {
+   void startScan() async {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
@@ -168,9 +168,9 @@ class Deneme extends State<BLEScannerWidget1> {
       print("error : $e");
     }
     getRSSI();
-  } */
+  } 
 
-/*
+
   void startScanMock() {
     
     print("<----------- Start Mock Scan --------->");
@@ -210,9 +210,9 @@ class Deneme extends State<BLEScannerWidget1> {
     print("<----------- End Mock Scan --------->");
    
   }
- */
+ 
 
-  /* void getRSSI() {
+   void getRSSI() {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
@@ -277,7 +277,7 @@ class Deneme extends State<BLEScannerWidget1> {
     FlutterBluePlus.scanResults.handleError((error) {
       print('Error during scanning: $error');
     });
-  } */
+  } 
 
   // Store RealBeacons and RSSI values
   void updateDeviceRssiValues(RealBeacon beacon, int rssi) {
@@ -454,91 +454,98 @@ class Deneme extends State<BLEScannerWidget1> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: getAislesFromTXT(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        } else {
-          // Convert the Set to a List
-          List<String> uniqueAislesList = uniqueAisles.toList();
+Widget build(BuildContext context) {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
+  return FutureBuilder<void>(
+    future: getAislesFromTXT(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return CircularProgressIndicator();
+      } else if (snapshot.hasError) {
+        return Center(
+          child: Text('Error: ${snapshot.error}'),
+        );
+      } else {
+        // Convert the Set to a List
+        List<String> uniqueAislesList = uniqueAisles.toList();
 
-          return Scaffold(
-            body: Row(
-              children: <Widget>[
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    color: Colors.white,
-                    child: ListView.builder(
-                      itemCount: uniqueAislesList.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        var aisleId = uniqueAislesList[index];
-                        return ListTile(
-                          title: Text(aisleId),
-                          onTap: () {
-                            setState(() {
-                              for (var aisle in aisleCoordinates) {
-                                if (aisle.name == aisleId) {
-                                  aisle.visible = !aisle.visible;
-                                }
-                              }
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: InteractiveViewer(
-                    panEnabled: true,
-                    boundaryMargin: EdgeInsets.all(80),
-                    minScale: 0.5,
-                    maxScale: 4,
-                    child: Stack(
-                      children: <Widget>[
-                        Image.asset(
-                          "assets/images/supermarket.png",
-                          fit: BoxFit.contain,
-                        ),
-                        for (var aisle in aisleCoordinates)
-                          if (aisle.visible)
-                            Positioned(
-                              left: calculateX(aisle.coordinates.x, context),
-                              top: calculateY(aisle.coordinates.y, context),
-                              child: Container(
-                                width: 4.7,
-                                height: 4.7,
-                                color: Colors.blue.withOpacity(0.5),
-                              ),
-                            ),
-                        Positioned(
-                          left: calculateX(userLocation.x, context),
-                          top: calculateY(userLocation.y, context),
-                          child: Icon(
-                            Icons.location_on,
-                            color: Colors.amber,
-                            size: 30, // Adjusted for better visibility
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+        return Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             ),
-          );
-        }
-      },
-    );
-  }
+            title: Text('Supermarket Layout'),
+          ),
+          drawer: Drawer(
+            child: ListView.builder(
+              itemCount: uniqueAislesList.length,
+              itemBuilder: (BuildContext context, int index) {
+                var aisleId = uniqueAislesList[index];
+                return ListTile(
+                  title: Text(aisleId),
+                  onTap: () {
+                    _scaffoldKey.currentState?.closeDrawer();
+                    setState(() {
+                      for (var aisle in aisleCoordinates) {
+                        if (aisle.name == aisleId) {
+                          aisle.visible = !aisle.visible;
+                        }
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          body: Row(
+            children: <Widget>[
+              Expanded(
+                flex: 4,
+                child: InteractiveViewer(
+                  panEnabled: true,
+                  boundaryMargin: EdgeInsets.all(80),
+                  minScale: 0.5,
+                  maxScale: 4,
+                  child: Stack(
+                    children: <Widget>[
+                      Image.asset(
+                        "assets/images/supermarket.png",
+                        fit: BoxFit.contain,
+                      ),
+                      for (var aisle in aisleCoordinates)
+                        if (aisle.visible)
+                          Positioned(
+                            left: calculateX(aisle.coordinates.x, context),
+                            top: calculateY(aisle.coordinates.y, context),
+                            child: Container(
+                              width: 4.7,
+                              height: 4.7,
+                              color: Colors.blue.withOpacity(0.5),
+                            ),
+                          ),
+                      Positioned(
+                        left: calculateX(userLocation.x, context),
+                        top: calculateY(userLocation.y, context),
+                        child: Icon(
+                          Icons.location_on,
+                          color: Colors.amber,
+                          size: 30,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    },
+  );
+}
 
   // Function to calculate X position based on grid position
   double calculateX(double gridX, BuildContext context) {
