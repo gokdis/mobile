@@ -11,7 +11,7 @@ void main() async {
 
   runApp(MyApp());
   Deneme deneme = Deneme();
-  //deneme.startScan();
+  deneme.startScan();
 }
 
 class MyApp extends StatelessWidget {
