@@ -469,64 +469,97 @@ class Deneme extends State<BLEScannerWidget1> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: getAislesFromTXT(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else {
-          return buildInteractiveViewer(context);
-        }
-      },
-    );
-  }
+@override
+Widget build(BuildContext context) {
+  return FutureBuilder<void>(
+    future: getAislesFromTXT(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return CircularProgressIndicator();
+      } else if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      } else {
+        return buildInteractiveViewer(context);
+      }
+    },
+  );
+}
 
-  Widget buildInteractiveViewer(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: <Widget>[
-          Expanded(
-            flex: 4,
-            child: InteractiveViewer(
-              panEnabled: true,
-              boundaryMargin: EdgeInsets.all(80),
-              minScale: 0.5,
-              maxScale: 4,
-              child: Stack(
-                children: <Widget>[
-                  Image.asset("assets/images/supermarket.png",
-                      fit: BoxFit.contain),
-                  ...buildAisles(),
-                  ValueListenableBuilder<Point>(
-                    valueListenable: userLocationNotifier,
-                    builder: (_, Point location, __) {
-                      return CustomerMarker(x: location.x, y: location.y);
-                    },
-                  ),
-                ],
-              ),
+Widget buildInteractiveViewer(BuildContext context) {
+  // Adding Scaffold with AppBar and Drawer
+  List<String> uniqueAislesList = uniqueAisles.toList();
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('Supermarket Layout'),
+      leading: Builder(
+        builder: (BuildContext context) {
+          return IconButton(
+            icon: Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          );
+        },
+      ),
+    ),
+    drawer: Drawer(
+      child: ListView.builder(
+        itemCount: uniqueAislesList.length,
+        itemBuilder: (BuildContext context, int index) {
+          var aisleId = uniqueAislesList[index];
+          return ListTile(
+            title: Text(aisleId),
+            onTap: () {
+              Navigator.of(context).pop(); // Close the drawer
+              setState(() {
+                for (var aisle in aisleCoordinates) {
+                  if (aisle.name == aisleId) {
+                    aisle.visible = !aisle.visible;
+                  }
+                }
+              });
+            },
+          );
+        },
+      ),
+    ),
+    body: Row(
+      children: <Widget>[
+        Expanded(
+          flex: 4,
+          child: InteractiveViewer(
+            panEnabled: true,
+            boundaryMargin: EdgeInsets.all(80),
+            minScale: 0.5,
+            maxScale: 4,
+            child: Stack(
+              children: <Widget>[
+                Image.asset("assets/images/supermarket.png", fit: BoxFit.contain),
+                ...buildAisles(),
+                ValueListenableBuilder<Point>(
+                  valueListenable: userLocationNotifier,
+                  builder: (_, Point location, __) {
+                    return CustomerMarker(x: location.x, y: location.y);
+                  },
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
-  List<Widget> buildAisles() {
-    return aisleCoordinates
-        .where((aisle) => aisle.visible)
-        .map((aisle) => Positioned(
-              left: calculateX(aisle.coordinates.x, context),
-              top: calculateY(aisle.coordinates.y, context),
-              child: Container(
-                  width: 4.7, height: 4.7, color: Colors.blue.withOpacity(0.5)),
-            ))
-        .toList();
-  }
+List<Widget> buildAisles() {
+  return aisleCoordinates
+      .where((aisle) => aisle.visible)
+      .map((aisle) => Positioned(
+            left: calculateX(aisle.coordinates.x, context),
+            top: calculateY(aisle.coordinates.y, context),
+            child: Container(
+                width: 4.7, height: 4.7, color: Colors.blue.withOpacity(0.5)),
+          ))
+      .toList();
+}
 
   @override
   void dispose() {
