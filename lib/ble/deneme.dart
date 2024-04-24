@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:gokdis/ble/deneme.dart';
 import 'package:gokdis/ble/deneme.dart';
 import 'package:http/http.dart' as http;
@@ -20,7 +22,7 @@ import 'package:ml_linalg/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+//import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:gokdis/ble/stream_controller.dart';
 import 'package:gokdis/settings.dart';
 import 'package:gokdis/user/login.dart';
@@ -28,11 +30,12 @@ import 'package:gokdis/user/login.dart';
 class Aisle {
   final String name;
   Point coordinates;
+  bool visible;
+  Aisle(this.name, this.coordinates, {this.visible = false});
 
-  Aisle(this.name, this.coordinates);
   @override
   String toString() {
-    return 'Aisle(name: $name, coordinates: $coordinates)';
+    return 'Aisle(name: $name, coordinates: $coordinates, visible: $visible)';
   }
 }
 
@@ -52,22 +55,16 @@ class Deneme extends State<BLEScannerWidget1> {
   static Map<String, Point> beaconCoordinates = {};
   bool loggedinstatus = false;
 
-  // TODO: Populate aisle list from database
   List<Aisle> aisleCoordinates = [];
   List<dynamic> aisleData = [];
-
-  Map<String, bool> aisleMarkersVisibility = {};
+  Set<String> uniqueAisles = Set();
+  bool dataLoaded = false;
 
   double x = 0.0;
   double y = 0.0;
   @override
   void initState() {
     super.initState();
-    getAisles();
-    // Make aisle markers invisible
-    aisleCoordinates.forEach((aisle) {
-      aisleMarkersVisibility[aisle.name] = false;
-    });
 
     scanSubscription = scanResultStream.listen((ScanResultEvent event) {
       setState(() {
@@ -76,7 +73,7 @@ class Deneme extends State<BLEScannerWidget1> {
     });
     print(beaconCoordinates);
 
-    startScan();
+    // startScan();
     //startAisleMovement();
     print(
         'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
@@ -99,7 +96,7 @@ class Deneme extends State<BLEScannerWidget1> {
       final response = await http.get(Uri.parse(url), headers: requestHeaders);
 
       if (response.statusCode == 200) {
-        print(response.body);
+        //print(response.body);
         var jsonResponse = jsonDecode(response.body);
         if (jsonResponse is List) {
           updateAisle(jsonResponse);
@@ -113,21 +110,35 @@ class Deneme extends State<BLEScannerWidget1> {
     }
   }
 
+  Future<void> getAislesFromTXT() async {
+    if (dataLoaded == false) {
+      try {
+        String textasset = "assets/cells.json";
+        String text = await rootBundle.loadString(textasset);
+
+        List<dynamic> jsonResponse = jsonDecode(text);
+
+        updateAisle(jsonResponse);
+      } catch (error) {
+        print("Error occurred while reading data from file: $error");
+      }
+    }
+  }
+
   void updateAisle(List<dynamic> aisleData) {
     List<Aisle> newAisles = [];
-    Set<String> ids = Set();
 
     for (var aisle in aisleData) {
       String id = aisle['sectionId'].toString();
-      if (!ids.contains(id)) {
-        double x = aisle['x'].toDouble();
-        double y = aisle['y'].toDouble();
-        newAisles.add(Aisle(id, Point(x, y)));
-        ids.add(id);
+      double x = aisle['x'].toDouble();
+      double y = aisle['y'].toDouble();
+      newAisles.add(Aisle(id, Point(x, y)));
+      if (!uniqueAisles.contains(id)) {
+        uniqueAisles.add(id);
       }
     }
-
-    aisleCoordinates = newAisles; 
+    aisleCoordinates = newAisles;
+    dataLoaded = true;
   }
 
   void startAisleMovement() {
@@ -144,7 +155,7 @@ class Deneme extends State<BLEScannerWidget1> {
 
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
-  void startScan() async {
+  /* void startScan() async {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
@@ -157,7 +168,7 @@ class Deneme extends State<BLEScannerWidget1> {
       print("error : $e");
     }
     getRSSI();
-  }
+  } */
 
 /*
   void startScanMock() {
@@ -201,7 +212,7 @@ class Deneme extends State<BLEScannerWidget1> {
   }
  */
 
-  void getRSSI() {
+  /* void getRSSI() {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
@@ -266,7 +277,7 @@ class Deneme extends State<BLEScannerWidget1> {
     FlutterBluePlus.scanResults.handleError((error) {
       print('Error during scanning: $error');
     });
-  }
+  } */
 
   // Store RealBeacons and RSSI values
   void updateDeviceRssiValues(RealBeacon beacon, int rssi) {
@@ -444,61 +455,88 @@ class Deneme extends State<BLEScannerWidget1> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: InteractiveViewer(
-        panEnabled: true,
-        boundaryMargin: EdgeInsets.all(80),
-        minScale: 0.5,
-        maxScale: 4,
-        child: Stack(
-          children: <Widget>[
-            Image.asset(
-              "assets/images/supermarket.png",
-              fit: BoxFit.contain,
-            ),
-            // Display aisle markers
-            for (var aisle in aisleCoordinates)
-              if (aisleMarkersVisibility[aisle.name] == true)
-                Positioned(
-                  left: calculateX(aisle.coordinates.x, context),
-                  top: calculateY(aisle.coordinates.y, context),
+    return FutureBuilder<void>(
+      future: getAislesFromTXT(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        } else {
+          // Convert the Set to a List
+          List<String> uniqueAislesList = uniqueAisles.toList();
+
+          return Scaffold(
+            body: Row(
+              children: <Widget>[
+                Expanded(
+                  flex: 1,
                   child: Container(
-                    width: 1,
-                    height: 1,
-                    color: Colors.blue.withOpacity(1),
+                    color: Colors.white,
+                    child: ListView.builder(
+                      itemCount: uniqueAislesList.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        var aisleId = uniqueAislesList[index];
+                        return ListTile(
+                          title: Text(aisleId),
+                          onTap: () {
+                            setState(() {
+                              for (var aisle in aisleCoordinates) {
+                                if (aisle.name == aisleId) {
+                                  aisle.visible = !aisle.visible;
+                                }
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
-            // Display user location marker
-            Positioned(
-              left: calculateX(userLocation.x, context),
-              top: calculateY(userLocation.y, context),
-              child: Icon(
-                Icons.location_on,
-                color: Colors.amber,
-                size: 10,
-              ),
+                Expanded(
+                  flex: 4,
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: EdgeInsets.all(80),
+                    minScale: 0.5,
+                    maxScale: 4,
+                    child: Stack(
+                      children: <Widget>[
+                        Image.asset(
+                          "assets/images/supermarket.png",
+                          fit: BoxFit.contain,
+                        ),
+                        for (var aisle in aisleCoordinates)
+                          if (aisle.visible)
+                            Positioned(
+                              left: calculateX(aisle.coordinates.x, context),
+                              top: calculateY(aisle.coordinates.y, context),
+                              child: Container(
+                                width: 4.7,
+                                height: 4.7,
+                                color: Colors.blue.withOpacity(0.5),
+                              ),
+                            ),
+                        Positioned(
+                          left: calculateX(userLocation.x, context),
+                          top: calculateY(userLocation.y, context),
+                          child: Icon(
+                            Icons.location_on,
+                            color: Colors.amber,
+                            size: 30, // Adjusted for better visibility
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      // Add aisle buttons
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          for (var aisle in aisleCoordinates)
-            FloatingActionButton(
-              onPressed: () {
-                // Toggle the visibility of the aisle marker
-                setState(() {
-                  aisleMarkersVisibility[aisle.name] =
-                      !aisleMarkersVisibility[aisle.name]!;
-                });
-              },
-              // child: Text(aisle.name),
-            ),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 
