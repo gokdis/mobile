@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:gokdis/ble/deneme.dart';
-import 'package:gokdis/ble/deneme.dart';
+
 import 'package:http/http.dart' as http;
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
@@ -39,6 +37,33 @@ class Aisle {
   }
 }
 
+class CustomerMarker extends StatelessWidget {
+  final double x;
+  final double y;
+
+  const CustomerMarker({Key? key, required this.x, required this.y})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: calculateX(x, context),
+      top: calculateY(y, context),
+      child: Icon(Icons.location_on, color: Colors.amber, size: 30),
+    );
+  }
+
+  // Calculate X position based on grid position
+  double calculateX(double gridX, BuildContext context) {
+    return gridX / 3.42; // Adjust according to your layout
+  }
+
+  // Calculate Y position based on grid position
+  double calculateY(double gridY, BuildContext context) {
+    return gridY / 3.42; // Adjust according to your layout
+  }
+}
+
 class BLEScannerWidget1 extends StatefulWidget {
   @override
   Deneme createState() => Deneme();
@@ -51,6 +76,7 @@ void onScanResultReceived(double x, double y) {
 class Deneme extends State<BLEScannerWidget1> {
   Map<RealBeacon, List<int>> deviceRssiValues = {};
   List<RealBeacon> nearestDevices = [];
+  ValueNotifier<Point> userLocationNotifier = ValueNotifier(Point(0, 0));
   Point userLocation = Point(0, 0);
   static Map<String, Point> beaconCoordinates = {};
   bool loggedinstatus = false;
@@ -67,9 +93,8 @@ class Deneme extends State<BLEScannerWidget1> {
     super.initState();
 
     scanSubscription = scanResultStream.listen((ScanResultEvent event) {
-      setState(() {
-        userLocation = Point(event.x, event.y);
-      });
+      userLocationNotifier.value =
+          Point(event.x, event.y); // Update only the notifier
     });
     print(beaconCoordinates);
 
@@ -155,7 +180,7 @@ class Deneme extends State<BLEScannerWidget1> {
 
   StreamSubscription<ScanResultEvent>? scanSubscription;
 
-   void startScan() async {
+  void startScan() async {
     try {
       await FlutterBluePlus.startScan(
         timeout: Duration(hours: 1),
@@ -168,11 +193,10 @@ class Deneme extends State<BLEScannerWidget1> {
       print("error : $e");
     }
     getRSSI();
-  } 
-
+    //startScanMock();
+  }
 
   void startScanMock() {
-    
     print("<----------- Start Mock Scan --------->");
     MockBeacon mockBeacon1 = MockBeacon(
       '26268',
@@ -208,11 +232,9 @@ class Deneme extends State<BLEScannerWidget1> {
     onScanResultReceived(userLocation.x, userLocation.y);
     print("User location: $userLocation");
     print("<----------- End Mock Scan --------->");
-   
   }
- 
 
-   void getRSSI() {
+  void getRSSI() {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
@@ -260,7 +282,7 @@ class Deneme extends State<BLEScannerWidget1> {
       Tracker tracker = Tracker(calculator, filter);
 
       //Mock customer
-      // startMockCustomer();
+      //startMockCustomer();
 
       //Calculate user location
       if (nearestDevices.length == 3) {
@@ -277,7 +299,7 @@ class Deneme extends State<BLEScannerWidget1> {
     FlutterBluePlus.scanResults.handleError((error) {
       print('Error during scanning: $error');
     });
-  } 
+  }
 
   // Store RealBeacons and RSSI values
   void updateDeviceRssiValues(RealBeacon beacon, int rssi) {
@@ -398,12 +420,6 @@ class Deneme extends State<BLEScannerWidget1> {
     }
   }
 
-  @override
-  void dispose() {
-    scanSubscription?.cancel();
-    super.dispose();
-  }
-
   void startMockCustomer() {
     int phase = 0; // 0 - right, 1 - down, 2 - left, 3 - up
     int timeCounter = 0;
@@ -454,98 +470,70 @@ class Deneme extends State<BLEScannerWidget1> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
-  return FutureBuilder<void>(
-    future: getAislesFromTXT(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return CircularProgressIndicator();
-      } else if (snapshot.hasError) {
-        return Center(
-          child: Text('Error: ${snapshot.error}'),
-        );
-      } else {
-        // Convert the Set to a List
-        List<String> uniqueAislesList = uniqueAisles.toList();
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: getAislesFromTXT(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          return buildInteractiveViewer(context);
+        }
+      },
+    );
+  }
 
-        return Scaffold(
-          key: _scaffoldKey,
-          appBar: AppBar(
-            leading: IconButton(
-              icon: Icon(Icons.menu),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            ),
-            title: Text('Supermarket Layout'),
-          ),
-          drawer: Drawer(
-            child: ListView.builder(
-              itemCount: uniqueAislesList.length,
-              itemBuilder: (BuildContext context, int index) {
-                var aisleId = uniqueAislesList[index];
-                return ListTile(
-                  title: Text(aisleId),
-                  onTap: () {
-                    _scaffoldKey.currentState?.closeDrawer();
-                    setState(() {
-                      for (var aisle in aisleCoordinates) {
-                        if (aisle.name == aisleId) {
-                          aisle.visible = !aisle.visible;
-                        }
-                      }
-                    });
-                  },
-                );
-              },
-            ),
-          ),
-          body: Row(
-            children: <Widget>[
-              Expanded(
-                flex: 4,
-                child: InteractiveViewer(
-                  panEnabled: true,
-                  boundaryMargin: EdgeInsets.all(80),
-                  minScale: 0.5,
-                  maxScale: 4,
-                  child: Stack(
-                    children: <Widget>[
-                      Image.asset(
-                        "assets/images/supermarket.png",
-                        fit: BoxFit.contain,
-                      ),
-                      for (var aisle in aisleCoordinates)
-                        if (aisle.visible)
-                          Positioned(
-                            left: calculateX(aisle.coordinates.x, context),
-                            top: calculateY(aisle.coordinates.y, context),
-                            child: Container(
-                              width: 4.7,
-                              height: 4.7,
-                              color: Colors.blue.withOpacity(0.5),
-                            ),
-                          ),
-                      Positioned(
-                        left: calculateX(userLocation.x, context),
-                        top: calculateY(userLocation.y, context),
-                        child: Icon(
-                          Icons.location_on,
-                          color: Colors.amber,
-                          size: 30,
-                        ),
-                      ),
-                    ],
+  Widget buildInteractiveViewer(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: <Widget>[
+          Expanded(
+            flex: 4,
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: EdgeInsets.all(80),
+              minScale: 0.5,
+              maxScale: 4,
+              child: Stack(
+                children: <Widget>[
+                  Image.asset("assets/images/supermarket.png",
+                      fit: BoxFit.contain),
+                  ...buildAisles(),
+                  ValueListenableBuilder<Point>(
+                    valueListenable: userLocationNotifier,
+                    builder: (_, Point location, __) {
+                      return CustomerMarker(x: location.x, y: location.y);
+                    },
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      }
-    },
-  );
-}
+        ],
+      ),
+    );
+  }
+
+  List<Widget> buildAisles() {
+    return aisleCoordinates
+        .where((aisle) => aisle.visible)
+        .map((aisle) => Positioned(
+              left: calculateX(aisle.coordinates.x, context),
+              top: calculateY(aisle.coordinates.y, context),
+              child: Container(
+                  width: 4.7, height: 4.7, color: Colors.blue.withOpacity(0.5)),
+            ))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    userLocationNotifier.dispose();
+    scanSubscription?.cancel();
+    super.dispose();
+  }
 
   // Function to calculate X position based on grid position
   double calculateX(double gridX, BuildContext context) {
