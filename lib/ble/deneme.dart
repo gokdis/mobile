@@ -29,7 +29,9 @@ class Aisle {
   final String name;
   Point coordinates;
   bool visible;
-  Aisle(this.name, this.coordinates, {this.visible = false});
+  String color;
+
+  Aisle(this.name, this.coordinates, {this.visible = false, this.color = ""});
 
   @override
   String toString() {
@@ -49,18 +51,22 @@ class CustomerMarker extends StatelessWidget {
     return Positioned(
       left: calculateX(x, context),
       top: calculateY(y, context),
-      child: Icon(Icons.location_on, color: Colors.amber, size: 30),
+      child: Icon(Icons.location_on, color: Colors.amber, size: 20),
     );
   }
 
   // Calculate X position based on grid position
   double calculateX(double gridX, BuildContext context) {
-    return gridX / 3.42; // Adjust according to your layout
+    double screenWidth = MediaQuery.of(context).size.width;
+    double ratio =  1343 / screenWidth;
+    return gridX / ratio; 
   }
 
   // Calculate Y position based on grid position
   double calculateY(double gridY, BuildContext context) {
-    return gridY / 3.42; // Adjust according to your layout
+    double screenWidth = MediaQuery.of(context).size.width;
+    double ratio =  1343 / screenWidth;
+    return gridY / ratio; 
   }
 }
 
@@ -157,7 +163,9 @@ class Deneme extends State<BLEScannerWidget1> {
       String id = aisle['name'].toString();
       double x = aisle['x'].toDouble();
       double y = aisle['y'].toDouble();
-      newAisles.add(Aisle(id, Point(x, y)));
+      String color = aisle['color'].toString();
+
+      newAisles.add(Aisle(id, Point(x, y), color: color));
       if (!uniqueAisles.contains(id)) {
         uniqueAisles.add(id);
       }
@@ -469,97 +477,102 @@ class Deneme extends State<BLEScannerWidget1> {
     });
   }
 
-@override
-Widget build(BuildContext context) {
-  return FutureBuilder<void>(
-    future: getAislesFromTXT(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return CircularProgressIndicator();
-      } else if (snapshot.hasError) {
-        return Center(child: Text('Error: ${snapshot.error}'));
-      } else {
-        return buildInteractiveViewer(context);
-      }
-    },
-  );
-}
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: getAislesFromTXT(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          return buildInteractiveViewer(context);
+        }
+      },
+    );
+  }
 
-Widget buildInteractiveViewer(BuildContext context) {
-  // Adding Scaffold with AppBar and Drawer
-  List<String> uniqueAislesList = uniqueAisles.toList();
-  return Scaffold(
-    appBar: AppBar(
-      title: Text('Supermarket Layout'),
-      leading: Builder(
-        builder: (BuildContext context) {
-          return IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          );
-        },
+  Widget buildInteractiveViewer(BuildContext context) {
+    // Adding Scaffold with AppBar and Drawer
+    List<String> uniqueAislesList = uniqueAisles.toList();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Supermarket Layout'),
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            );
+          },
+        ),
       ),
-    ),
-    drawer: Drawer(
-      child: ListView.builder(
-        itemCount: uniqueAislesList.length,
-        itemBuilder: (BuildContext context, int index) {
-          var aisleId = uniqueAislesList[index];
-          return ListTile(
-            title: Text(aisleId),
-            onTap: () {
-              Navigator.of(context).pop(); // Close the drawer
-              setState(() {
-                for (var aisle in aisleCoordinates) {
-                  if (aisle.name == aisleId) {
-                    aisle.visible = !aisle.visible;
+      drawer: Drawer(
+        child: ListView.builder(
+          itemCount: uniqueAislesList.length,
+          itemBuilder: (BuildContext context, int index) {
+            var aisleId = uniqueAislesList[index];
+            return ListTile(
+              title: Text(aisleId),
+              onTap: () {
+                Navigator.of(context).pop(); // Close the drawer
+                setState(() {
+                  for (var aisle in aisleCoordinates) {
+                    if (aisle.name == aisleId) {
+                      aisle.visible = !aisle.visible;
+                    }
                   }
-                }
-              });
-            },
-          );
-        },
+                });
+              },
+            );
+          },
+        ),
       ),
-    ),
-    body: Row(
-      children: <Widget>[
-        Expanded(
-          flex: 4,
-          child: InteractiveViewer(
-            panEnabled: true,
-            boundaryMargin: EdgeInsets.all(80),
-            minScale: 0.5,
-            maxScale: 4,
-            child: Stack(
-              children: <Widget>[
-                Image.asset("assets/images/supermarket.png", fit: BoxFit.contain),
-                ...buildAisles(),
-                ValueListenableBuilder<Point>(
-                  valueListenable: userLocationNotifier,
-                  builder: (_, Point location, __) {
-                    return CustomerMarker(x: location.x, y: location.y);
-                  },
-                ),
-              ],
+      body: Row(
+        children: <Widget>[
+          Expanded(
+            flex: 4,
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: EdgeInsets.all(80),
+              minScale: 0.5,
+              maxScale: 4,
+              child: Stack(
+                children: <Widget>[
+                  Image.asset("assets/images/supermarket.png",
+                      fit: BoxFit.contain),
+                  ...buildAisles(),
+                  ValueListenableBuilder<Point>(
+                    valueListenable: userLocationNotifier,
+                    builder: (_, Point location, __) {
+                      return CustomerMarker(x: location.x, y: location.y);
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-List<Widget> buildAisles() {
-  return aisleCoordinates
-      .where((aisle) => aisle.visible)
-      .map((aisle) => Positioned(
-            left: calculateX(aisle.coordinates.x, context),
-            top: calculateY(aisle.coordinates.y, context),
-            child: Container(
-                width: 4.7, height: 4.7, color: Colors.blue.withOpacity(0.5)),
-          ))
-      .toList();
-}
+  List<Widget> buildAisles() {
+    return aisleCoordinates
+        .where((aisle) => aisle.visible)
+        .map((aisle) => Positioned(
+              left: calculateX(aisle.coordinates.x, context),
+              top: calculateY(aisle.coordinates.y, context),
+              child: Container(
+                  width: 4.7,
+                  height: 4.7,
+                  color:
+                      Color(int.parse(aisle.color.substring(1, 7), radix: 16))
+                          .withOpacity(0.5)),
+            ))
+        .toList();
+  }
 
   @override
   void dispose() {
@@ -570,15 +583,15 @@ List<Widget> buildAisles() {
 
   // Function to calculate X position based on grid position
   double calculateX(double gridX, BuildContext context) {
-    //double screenWidth = MediaQuery.of(context).size.width;
-    //return (gridX * 16.35 * screenWidth) / 1343;
-    return gridX / 3.42;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double ratio =  1343 / screenWidth;
+    return gridX / ratio;
   }
 
   // Function to calculate Y position based on grid position
   double calculateY(double gridY, BuildContext context) {
-    //double screenHeight = MediaQuery.of(context).size.height;
-    //return (gridY * 15.7 * screenHeight) / 2834;
-    return gridY / 3.42;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double ratio =  1343 / screenWidth;
+    return gridY / ratio;
   }
 }
