@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:gokdis/settings.dart';
+import '../ble/asd.dart';
 
 import '../ble/deneme.dart';
 
@@ -214,7 +215,7 @@ class ShoppingListWidget extends StatefulWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BLEScannerWidget1(),
+        builder: (context) => BLEScannerWidget(),
       ),
     );
   }

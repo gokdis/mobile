@@ -1,10 +1,6 @@
-import 'dart:convert';
 import 'dart:math';
 import 'dart:async';
-
-import 'package:flutter/services.dart';
-
-import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:epitaph_ips/epitaph_ips/positioning_system/mock_beacon.dart';
@@ -17,7 +13,7 @@ import 'package:epitaph_ips/epitaph_ips/tracking/simple_ukf.dart';
 import 'package:epitaph_ips/epitaph_ips/tracking/tracker.dart';
 import 'package:epitaph_ips/epitaph_ips/tracking/calculator.dart';
 import 'package:ml_linalg/matrix.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -38,7 +34,7 @@ class Aisle {
   }
 }
 
-class BLEScannerWidget1 extends StatefulWidget {
+class BLEScannerWidget extends StatefulWidget {
   @override
   Deneme createState() => Deneme();
 }
@@ -46,20 +42,34 @@ class BLEScannerWidget1 extends StatefulWidget {
 void onScanResultReceived(double x, double y) {
   scanResultStreamController.add(ScanResultEvent(x, y));
 }
+/**
+ * coordinates for new map
+ * 
+ * 
+ *  Settings.globalBeaconCoordinates : {EB:6F:20:3B:89:E2: Point(x: 435.0, y: 767.0, z: 0.0), 
+ * C7:10:69:07:FB:51: Point(x: 280.0, y: 640.0, z: 0.0), F5:E5:8C:26:DB:7A: Point(x: 590.0, y: 640.0, z: 0.0)}
 
-class Deneme extends State<BLEScannerWidget1> {
+ */
+
+class Deneme extends State<BLEScannerWidget> {
   Map<RealBeacon, List<int>> deviceRssiValues = {};
   List<RealBeacon> nearestDevices = [];
   Point userLocation = Point(0, 0);
-  static Map<String, Point> beaconCoordinates = {};
-  bool loggedinstatus = false;
-  late Future<void> _aislesFuture;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // variables for aisle
+  late Future<void> _aislesFuture;
   List<Aisle> aisleCoordinates = [];
   List<dynamic> aisleData = [];
   Set<String> uniqueAisles = Set();
   bool dataLoaded = false;
+
+  // coordinates for old map
+  static Map<String, Point> beaconCoordinates = {
+    'EB:6F:20:3B:89:E2': Point(27, 49),
+    'C7:10:69:07:FB:51': Point(17, 41),
+    'F5:E5:8C:26:DB:7A': Point(36, 41),
+  };
 
   double x = 0.0;
   double y = 0.0;
@@ -71,46 +81,22 @@ class Deneme extends State<BLEScannerWidget1> {
         userLocation = Point(event.x, event.y);
       });
     });
-    _aislesFuture = getAislesFromTXT();
     print(beaconCoordinates);
+    _aislesFuture = getAislesFromTXT();
 
     startScan();
-    //startAisleMovement();
+
     print(
         'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
   }
 
-  Future<void> getAisles() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String url = Settings.instance.getUrl('cell/all');
-    String? email = prefs.getString('email');
-    String? password = prefs.getString('password');
-    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
-
-    final Map<String, String> requestHeaders = {
-      'Content-type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': basicAuth,
-    };
-
-    try {
-      final response = await http.get(Uri.parse(url), headers: requestHeaders);
-
-      if (response.statusCode == 200) {
-        //print(response.body);
-        var jsonResponse = jsonDecode(response.body);
-        if (jsonResponse is List) {
-          updateAisle(jsonResponse);
-        }
-        print('After update: ${aisleCoordinates.length}');
-      } else {
-        print("Failed to fetch data. Status code: ${response.statusCode}");
-      }
-    } catch (error) {
-      print("Error occurred while fetching data: $error");
-    }
+  @override
+  void dispose() {
+    scanSubscription?.cancel();
+    super.dispose();
   }
 
+  StreamSubscription<ScanResultEvent>? scanSubscription;
   Future<void> getAislesFromTXT() async {
     if (dataLoaded == false) {
       try {
@@ -144,20 +130,6 @@ class Deneme extends State<BLEScannerWidget1> {
     dataLoaded = true;
   }
 
-  void startAisleMovement() {
-    Timer.periodic(Duration(milliseconds: 200), (timer) {
-      setState(() {
-        aisleCoordinates[0].coordinates = Point(
-            aisleCoordinates[0].coordinates.x,
-            aisleCoordinates[0].coordinates.y + 1);
-
-        print(aisleCoordinates[0].coordinates);
-      });
-    });
-  }
-
-  StreamSubscription<ScanResultEvent>? scanSubscription;
-
   void startScan() async {
     try {
       await FlutterBluePlus.startScan(
@@ -171,45 +143,6 @@ class Deneme extends State<BLEScannerWidget1> {
       print("error : $e");
     }
     getRSSI();
-    //startScanMock();
-  }
-
-  void startScanMock() {
-    print("<----------- Start Mock Scan --------->");
-    MockBeacon mockBeacon1 = MockBeacon(
-      '26268',
-      'c7:10:69:07:fb:51',
-      Point(17, 41),
-    );
-    MockBeacon mockBeacon2 = MockBeacon(
-      '10000',
-      'f5:e5:8c:26:db:7a',
-      Point(36, 41),
-    );
-    MockBeacon mockBeacon3 = MockBeacon(
-      '100002',
-      'eb:6f:20:3b:89:e2',
-      Point(27, 49),
-    );
-
-    List<MockBeacon> mockBeacons = [
-      mockBeacon1,
-      mockBeacon2,
-      mockBeacon3,
-    ];
-
-    Point userDevice = Point(0.5, 0.5);
-    mockBeacon1.sendRssiAdvertisement(userDevice);
-    mockBeacon2.sendRssiAdvertisement(userDevice);
-    mockBeacon3.sendRssiAdvertisement(userDevice);
-    Calculator calculator = LMA();
-    print("Mock beacon 1: $mockBeacon1");
-    print("Mock beacon 2: $mockBeacon2");
-    print("Mock beacon 3: $mockBeacon3");
-    userLocation = calculator.calculate(mockBeacons);
-    onScanResultReceived(userLocation.x, userLocation.y);
-    print("User location: $userLocation");
-    print("<----------- End Mock Scan --------->");
   }
 
   void getRSSI() {
@@ -217,7 +150,7 @@ class Deneme extends State<BLEScannerWidget1> {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
 
-        beaconCoordinates = Settings.globalBeaconCoordinates;
+        // beaconCoordinates = Settings.globalBeaconCoordinates;
 
         Point? point = beaconCoordinates[deviceMAC];
 
@@ -258,9 +191,6 @@ class Deneme extends State<BLEScannerWidget1> {
 
       //Initialize tracker
       Tracker tracker = Tracker(calculator, filter);
-
-      //Mock customer
-      //startMockCustomer();
 
       //Calculate user location
       if (nearestDevices.length == 3) {
@@ -328,124 +258,61 @@ class Deneme extends State<BLEScannerWidget1> {
     });
   }
 
-  String generateRandomUuid() {
-    final random = Random();
-    final hexChars = '0123456789abcdef';
-    final buffer = StringBuffer();
-    for (int i = 0; i < 32; i++) {
-      buffer.write(hexChars[random.nextInt(16)]);
-    }
-
-    return buffer
-        .toString()
-        .replaceRange(8, 8, '-')
-        .replaceRange(13, 13, '-')
-        .replaceRange(18, 18, '-')
-        .replaceRange(23, 23, '-');
-  }
-
-  Future<bool> isLoggedIn() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    return prefs.getBool('isLoggedIn') ?? false;
-  }
-
-  Future<void> sendCoordinatesToBackend(int x, int y) async {
-    // call this in if(nearestdevices.length==3)
-    loggedinstatus = await isLoggedIn();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String uuid = generateRandomUuid();
-
-    String url = Settings.instance.getUrl('position');
-    String? email = prefs.getString('email');
-    String? password = prefs.getString('password');
-    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
-    String currentTime = DateTime.now().toIso8601String();
-
-    Map<String, dynamic> payload = {
-      'id': uuid,
-      'personEmail': email,
-      'x': x,
-      'y': y,
-      'time': currentTime,
-    };
-
-    final Map<String, String> requestHeaders = {
-      'Content-type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': basicAuth,
-    };
-
-    try {
-      if (loggedinstatus) {
-        final response = await http.post(
-          Uri.parse(url),
-          headers: requestHeaders,
-          body: jsonEncode(payload),
-        );
-
-        if (response.statusCode == 200) {
-          print('Coordinates sent successfully : $x $y');
-        } else {
-          print(
-              'Failed to send coordinates. Status code: ${response.statusCode}');
-        }
-      } else {
-        print("not logged in");
-      }
-    } catch (e) {
-      print('Error sending coordinates: $e');
-    }
-  }
-
-  void startMockCustomer() {
-    int phase = 0; // 0 - right, 1 - down, 2 - left, 3 - up
-    int timeCounter = 0;
-    userLocation = Point(14, 43);
-
-    Timer.periodic(Duration(milliseconds: 1000), (timer) {
-      setState(() {
-        switch (phase) {
-          case 0: // Walking right
-            if (timeCounter < 46) {
-              userLocation = Point(userLocation.x + 1, userLocation.y);
-              timeCounter++;
-            } else {
-              phase = 1;
-              timeCounter = 0;
-            }
-            break;
-          case 1: // Walking down
-            if (timeCounter < 8) {
-              userLocation = Point(userLocation.x, userLocation.y + 1);
-              timeCounter++;
-            } else {
-              phase = 2;
-              timeCounter = 0;
-            }
-            break;
-          case 2: // Walking left
-            if (timeCounter < 46) {
-              userLocation = Point(userLocation.x - 1, userLocation.y);
-              timeCounter++;
-            } else {
-              phase = 3;
-              timeCounter = 0;
-            }
-            break;
-          case 3: // Walking up
-            if (timeCounter < 8) {
-              userLocation = Point(userLocation.x, userLocation.y - 1);
-              timeCounter++;
-            } else {
-              phase = 0;
-              timeCounter = 0;
-            }
-            break;
-        }
-      });
-    });
-  }
+ /*  @override
+  Widget build1(BuildContext context) {
+    return Scaffold(
+      body: InteractiveViewer(
+        panEnabled: true,
+        boundaryMargin: EdgeInsets.all(80),
+        minScale: 0.5,
+        maxScale: 4,
+        child: Stack(
+          children: <Widget>[
+            Image.asset(
+              "assets/images/supermarket.png",
+              fit: BoxFit.contain,
+            ),
+            Positioned(
+              left: calculateX(userLocation.x, context),
+              top: calculateY(userLocation.y, context),
+              child: Icon(
+                Icons.location_on,
+                color: Colors.amber,
+                size: 10,
+              ),
+            ),
+            Positioned(
+              left: calculateX(17, context),
+              top: calculateY(41, context),
+              child: Icon(
+                Icons.location_on,
+                color: Colors.red,
+                size: 10,
+              ),
+            ),
+            Positioned(
+              left: calculateX(36, context),
+              top: calculateY(41, context),
+              child: Icon(
+                Icons.location_on,
+                color: Colors.red,
+                size: 10,
+              ),
+            ),
+            Positioned(
+              left: calculateX(27, context),
+              top: calculateY(49, context),
+              child: Icon(
+                Icons.location_on,
+                color: Colors.red,
+                size: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  } */
 
   @override
   Widget build(BuildContext context) {
@@ -513,6 +380,123 @@ class Deneme extends State<BLEScannerWidget1> {
                 for (var aisle in aisleCoordinates)
                   if (aisle.visible)
                     Positioned(
+                      left: calculateXAisle(aisle.coordinates.x, context),
+                      top: calculateYAisle(aisle.coordinates.y, context),
+                      child: Container(
+                        width: 4.7,
+                        height: 4.7,
+                        color: Colors.blue.withOpacity(0.5),
+                      ),
+                    ),
+                Positioned(
+                  left: calculateX(userLocation.x, context),
+                  top: calculateY(userLocation.y, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.amber,
+                    size: 10,
+                  ),
+                ),
+                Positioned(
+                  left: calculateX(17, context),
+                  top: calculateY(41, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 10,
+                  ),
+                ),
+                Positioned(
+                  left: calculateX(36, context),
+                  top: calculateY(41, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 10,
+                  ),
+                ),
+                Positioned(
+                  left: calculateX(27, context),
+                  top: calculateY(49, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  @override
+  Widget build2(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _aislesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Text('Error: ${snapshot.error}'),
+            ),
+          );
+        }
+
+        // Convert the Set to a List
+        List<String> uniqueAislesList = uniqueAisles.toList();
+
+        return Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
+            title: Text('Supermarket Layout'),
+          ),
+          drawer: Drawer(
+            child: ListView.builder(
+              itemCount: uniqueAislesList.length,
+              itemBuilder: (BuildContext context, int index) {
+                var aisleId = uniqueAislesList[index];
+                return ListTile(
+                  title: Text(aisleId),
+                  onTap: () {
+                    _scaffoldKey.currentState?.closeDrawer();
+                    setState(() {
+                      for (var aisle in aisleCoordinates) {
+                        if (aisle.name == aisleId) {
+                          aisle.visible = !aisle.visible;
+                        }
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          body: InteractiveViewer(
+            panEnabled: true,
+            boundaryMargin: EdgeInsets.all(80),
+            minScale: 0.5,
+            maxScale: 4,
+            child: Stack(
+              children: <Widget>[
+                Image.asset(
+                  "assets/images/supermarketold.png",
+                  fit: BoxFit.contain,
+                ),
+                for (var aisle in aisleCoordinates)
+                  if (aisle.visible)
+                    Positioned(
                       left: calculateX(aisle.coordinates.x, context),
                       top: calculateY(aisle.coordinates.y, context),
                       child: Container(
@@ -524,13 +508,37 @@ class Deneme extends State<BLEScannerWidget1> {
                 Positioned(
                   left: calculateX(userLocation.x, context),
                   top: calculateY(userLocation.y, context),
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.amber,
+                    size: 10,
+                  ),
+                ),
+                Positioned(
+                  left: calculateX(17, context),
+                  top: calculateY(41, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 10,
+                  ),
+                ),
+                Positioned(
+                  left: calculateX(36, context),
+                  top: calculateY(41, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 10,
+                  ),
+                ),
+                Positioned(
+                  left: calculateX(27, context),
+                  top: calculateY(49, context),
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 10,
                   ),
                 ),
               ],
@@ -541,22 +549,30 @@ class Deneme extends State<BLEScannerWidget1> {
     );
   }
 
-   @override
-  void dispose() {
-    scanSubscription?.cancel();
-    super.dispose();
-  } 
-
+// old map coordinates
   // Function to calculate X position based on grid position
   double calculateX(double gridX, BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    print(screenWidth);
+    return (gridX * 16.35 * screenWidth) / 1343;
+  }
+
+  // Function to calculate Y position based on grid position
+  double calculateY(double gridY, BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    return (gridY * 15.7 * screenHeight) / 2834;
+  }
+//-----------------------------------------------------------------------------
+
+// new map coordinates
+  // Function to calculate X position based on grid position
+  double calculateXAisle(double gridX, BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
     double ratio = 1343 / screenWidth;
     return gridX / ratio;
   }
 
   // Function to calculate Y position based on grid position
-  double calculateY(double gridY, BuildContext context) {
+  double calculateYAisle(double gridY, BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double ratio = 1343 / screenWidth;
     return gridY / ratio;
