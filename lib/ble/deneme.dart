@@ -1,4 +1,4 @@
-import 'dart:convert';
+/* import 'dart:convert';
 import 'dart:math';
 import 'dart:async';
 
@@ -562,3 +562,4 @@ class Deneme extends State<BLEScannerWidget1> {
     return gridY / ratio;
   }
 }
+ */
