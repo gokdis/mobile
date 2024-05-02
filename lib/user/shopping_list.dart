@@ -8,8 +8,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:gokdis/settings.dart';
 import '../ble/asd.dart';
-
-import '../ble/deneme.dart';
+import 'package:gokdis/ble/global_variables.dart';
 
 class BeaconProvider with ChangeNotifier {
   List<dynamic> _beaconData = [];
@@ -27,33 +26,70 @@ class ShoppingListWidget extends StatefulWidget {
   ShoppingListWidgetState createState() => ShoppingListWidgetState();
 }
 
-  class ShoppingListWidgetState extends State<ShoppingListWidget> {
-  TextEditingController _itemController = TextEditingController();
-  List<String> _items = [];
+class ShoppingListWidgetState extends State<ShoppingListWidget> {
   List<dynamic> beaconData = [];
+  late Set<String> uniqueAisles;
+
 
   @override
   void initState() {
     super.initState();
     getBeacons();
+    getSections();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final global = Provider.of<Global>(context, listen: false);
+      global.getAislesFromTXT();
+    });
+    uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
+
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Shopping List'),
-        backgroundColor: Color(0xFFFFA500),
-      ),
-      body: Column(
-        children: [
-          _buildAddItemField(),
-          _buildItemList(),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
-    );
-  }
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+ @override
+Widget build(BuildContext context) {
+  return Consumer<Global>(
+    builder: (context, global, child) {
+      List<String> uniqueAislesList = global.uniqueAisles.toList();
+      return Scaffold(
+        key: _scaffoldKey,
+        appBar: AppBar(
+          leading: IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () {
+                _scaffoldKey.currentState?.openDrawer();
+              }),
+          title: Text('Shopping List'),
+          backgroundColor: Color(0xFFFFA500),
+        ),
+        drawer: Drawer(
+          child: ListView.builder(
+            itemCount: uniqueAislesList.length,
+            itemBuilder: (BuildContext context, int index) {
+              var aisleId = uniqueAislesList[index];
+              return ListTile(
+                title: Text(aisleId),
+                onTap: () {
+                  _scaffoldKey.currentState?.closeDrawer();
+           
+                  setState(() {
+                    for (var aisle in global.aisleCoordinates) { 
+                      if (aisle.name == aisleId) {
+                      }
+                    }
+                  });
+                },
+              );
+            },
+          ),
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(),
+      );
+    },
+  );
+}
+
 
   // Shopping list functions
 
@@ -100,69 +136,6 @@ class ShoppingListWidget extends StatefulWidget {
     );
   }
 
-  Widget _buildAddItemField() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _itemController,
-              decoration: InputDecoration(
-                hintText: 'Enter item',
-              ),
-            ),
-          ),
-          SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: () {
-              _addItem();
-            },
-            child: Text('Add'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addItem() {
-    String newItem = _itemController.text.trim();
-    if (newItem.isNotEmpty) {
-      setState(() {
-        _items.add(newItem);
-        _itemController.clear();
-      });
-    }
-  }
-
-  Widget _buildItemList() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: _items.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(_items[index]),
-            trailing: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () {
-                _removeItem(index);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _removeItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
-  }
-
   // get beacons from server
 
   Future<void> getBeacons() async {
@@ -189,7 +162,7 @@ class ShoppingListWidget extends StatefulWidget {
         beaconData = jsonDecode(response.body);
         Provider.of<BeaconProvider>(context, listen: false)
             .setBeaconData(beaconData);
-         //   print('before update : $beaconData');
+        //   print('before update : $beaconData');
         updateGlobalBeaconCoordinates(beaconData);
         print('After updat e: ${Settings.globalBeaconCoordinates}');
       } else {
@@ -202,13 +175,42 @@ class ShoppingListWidget extends StatefulWidget {
 
   void updateGlobalBeaconCoordinates(List<dynamic> beaconData) {
     for (var beacon in beaconData) {
-     // String id = beacon['id'];
+      // String id = beacon['id'];
       String mac = beacon['mac'].toString().toUpperCase();
       double x = beacon['x'].toDouble();
       double y = beacon['y'].toDouble();
       Settings.globalBeaconCoordinates[mac] = Point(x, y);
     }
   }
+
+  Future<void> getSections() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String url = Settings.instance.getUrl('section');
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': basicAuth,
+    };
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: requestHeaders);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        print("sections : $data");
+      } else {
+        print("Failed to fetch data. Status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error occurred while fetching data: $error");
+    }
+  }
+
   // Navigation functions
 
   void navigateToMap() {
