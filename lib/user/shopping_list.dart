@@ -86,7 +86,6 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
               },
             ),
           ),
-          bottomNavigationBar: _buildBottomNavigationBar(),
         );
       },
     );
@@ -99,34 +98,9 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
         title: Text(product['name']!, style: TextStyle(color: Colors.black)),
         trailing: Text('Price: ${product['price']}',
             style: TextStyle(color: Color(0xFF333366))),
-        onTap: () {}, 
+        onTap: () {},
       );
     }).toList();
-  }
-
-  // bottom navigation bar
-
-  Widget _buildBottomNavigationBar() {
-    return BottomAppBar(
-      color: Color(0xFF333366),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          IconButton(
-            icon: Icon(Icons.map, color: Colors.white),
-            onPressed: navigateToMap,
-          ),
-          IconButton(
-            icon: Icon(Icons.campaign, color: Colors.white),
-            onPressed: navigateToSpecialOffer,
-          ),
-          IconButton(
-            icon: Icon(Icons.barcode_reader, color: Colors.white),
-            onPressed: navigateToBarcodeReader,
-          ),
-        ],
-      ),
-    );
   }
 
   // Navigation functions

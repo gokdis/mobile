@@ -1,6 +1,4 @@
-import 'dart:math';
 import 'dart:async';
-import 'dart:convert';
 import 'package:gokdis/ble/global_variables.dart';
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
@@ -234,7 +232,7 @@ class Deneme extends State<BLEScannerWidget> {
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
                 }),
-            title: Text('Shopping List'),
+            title: Text('Supermarket Map'),
             backgroundColor: Color(0xFFFFA500),
           ),
           drawer: Drawer(
