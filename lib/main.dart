@@ -10,7 +10,8 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   runApp(MyApp());
-
+  Deneme deneme = Deneme();
+  //deneme.startScan();
 }
 
 class MyApp extends StatelessWidget {

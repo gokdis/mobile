@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:gokdis/ble/global_variables.dart';
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
-import 'package:epitaph_ips/epitaph_ips/positioning_system/mock_beacon.dart';
 import 'package:epitaph_ips/epitaph_ips/positioning_system/real_beacon.dart';
 import 'package:epitaph_ips/epitaph_ips/tracking/filter.dart';
 import 'package:epitaph_ips/epitaph_ips/tracking/lma.dart';
@@ -18,7 +17,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:gokdis/ble/stream_controller.dart';
-import 'package:gokdis/settings.dart';
 
 class Aisle {
   final String name;
@@ -65,9 +63,9 @@ class Deneme extends State<BLEScannerWidget> {
 
   // coordinates for old map
   static Map<String, Point> beaconCoordinates = {
-    'EB:6F:20:3B:89:E2': Point(435, 767),
-    'C7:10:69:07:FB:51': Point(280, 640),
-    'F5:E5:8C:26:DB:7A': Point(590, 640),
+    'EB:6F:20:3B:89:E2': Point(4.35, 7.67),
+    'C7:10:69:07:FB:51': Point(2.8, 6.4),
+    'F5:E5:8C:26:DB:7A': Point(5.8, 6.4),
   };
 
   double x = 0.0;
@@ -85,6 +83,7 @@ class Deneme extends State<BLEScannerWidget> {
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
+    startScan();
   }
 
   @override
@@ -119,12 +118,12 @@ class Deneme extends State<BLEScannerWidget> {
 
         if (point != null) {
           RealBeacon beacon =
-              RealBeacon(deviceMAC, 'name', Point(point.x / 14, point.y / 14));
+              RealBeacon(deviceMAC, 'name', Point(point.x, point.y));
           updateDeviceRssiValues(beacon, result.rssi);
         }
       }
 
-      print(deviceRssiValues);
+      print("device rssi values: $deviceRssiValues");
 
       //Calculate user location with filter
       //Initialize calculator
@@ -159,7 +158,8 @@ class Deneme extends State<BLEScannerWidget> {
       if (nearestDevices.length == 3) {
         tracker.initiateTrackingCycle(nearestDevices);
         userLocation = tracker.calculatedPosition; //finalPosition
-        onScanResultReceived(userLocation.x / 14, userLocation.y / 14);
+
+        onScanResultReceived(userLocation.x, userLocation.y);
 
         print("User location: $userLocation");
       } else {
@@ -282,39 +282,48 @@ class Deneme extends State<BLEScannerWidget> {
                       ),
                     ),
                 Positioned(
-                  left: calculateXAisle(userLocation.x, context),
-                  top: calculateYAisle(userLocation.y, context),
+                  left: convertToMapX(userLocation.x),
+                  top: convertToMapY(userLocation.y),
                   child: Icon(
                     Icons.location_on,
                     color: Colors.amber,
-                    size: 30,
+                    size: 10,
                   ),
                 ),
                 Positioned(
-                  left: calculateXAisle(280, context),
-                  top: calculateYAisle(640, context),
+                  //C7
+                  left: convertToMapX(
+                      beaconCoordinates.entries.elementAt(1).value.x),
+                  top: convertToMapY(
+                      beaconCoordinates.entries.elementAt(1).value.y),
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
-                    size: 30,
+                    size: 10,
                   ),
                 ),
                 Positioned(
-                  left: calculateXAisle(590, context),
-                  top: calculateYAisle(640, context),
+                  //F5
+                  left: convertToMapX(
+                      beaconCoordinates.entries.elementAt(2).value.x),
+                  top: convertToMapY(
+                      beaconCoordinates.entries.elementAt(2).value.y),
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
-                    size: 30,
+                    size: 10,
                   ),
                 ),
                 Positioned(
-                  left: calculateXAisle(435, context),
-                  top: calculateYAisle(767, context),
+                  //EB
+                  left: convertToMapX(
+                      beaconCoordinates.entries.elementAt(0).value.x),
+                  top: convertToMapY(
+                      beaconCoordinates.entries.elementAt(0).value.y),
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
-                    size: 30,
+                    size: 10,
                   ),
                 ),
               ],
@@ -324,20 +333,6 @@ class Deneme extends State<BLEScannerWidget> {
       },
     );
   }
-
-// old map coordinates
-  // Function to calculate X position based on grid position
-  double calculateX(double gridX, BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    return (gridX * 16.35 * screenWidth) / 1343;
-  }
-
-  // Function to calculate Y position based on grid position
-  double calculateY(double gridY, BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
-    return (gridY * 15.7 * screenHeight) / 2834;
-  }
-//-----------------------------------------------------------------------------
 
 // new map coordinates
   // Function to calculate X position based on grid position
@@ -354,5 +349,23 @@ class Deneme extends State<BLEScannerWidget> {
     double ratio = 2834 / screenHeight;
 
     return gridY / ratio;
+  }
+
+  double convertToMapX(double meter) {
+    double pixel = meter * 100;
+
+    double screenWidth = MediaQuery.of(context).size.width;
+    double ratio = 1343 / screenWidth;
+
+    return pixel / ratio;
+  }
+
+  double convertToMapY(double meter) {
+    double pixel = meter * 100;
+
+    double screenHeight = MediaQuery.of(context).size.height;
+    double ratio = 2834 / screenHeight;
+
+    return pixel / ratio;
   }
 }
