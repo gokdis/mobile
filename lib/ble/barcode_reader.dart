@@ -4,8 +4,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:gokdis/ble/global_variables.dart';
 import 'package:gokdis/settings.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BarcodeReader extends StatefulWidget {
@@ -18,42 +20,11 @@ class BarcodeReaderState extends State<BarcodeReader> {
   List<String> _basketItems = [];
   List<Map<String, dynamic>> itemsToSend = [];
 
-  late String prodcuts;
   Map<String, Map<String, String>> _productList = {};
   @override
   void initState() {
     super.initState();
-    getProducts();
-  }
-
-  Future<void> startBarcodeScanStream() async {
-    FlutterBarcodeScanner.getBarcodeStreamReceiver(
-            '#ff6666', 'Cancel', true, ScanMode.BARCODE)!
-        .listen((barcode) {
-      print(barcode);
-      if (!mounted) return;
-      setState(() {
-        _basketItems.add(barcode);
-      });
-    });
-  }
-
-  Future<void> scanQR() async {
-    String barcodeScanRes;
-    try {
-      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-          '#ff6666', 'Cancel', true, ScanMode.QR);
-      print(barcodeScanRes);
-    } on PlatformException {
-      barcodeScanRes = 'Failed to get platform version.';
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _scanBarcode = barcodeScanRes;
-      _basketItems.add(barcodeScanRes);
-    });
+    _productList = Provider.of<Global>(context, listen: false).productList;
   }
 
   Future<void> scanBarcodeNormal() async {
@@ -107,7 +78,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
           'personEmail': email,
           'productId': itemId,
           'description': product['description'] ?? 'No description available',
-          'quantity': product['stock'] ?? 0, 
+          'quantity': product['stock'] ?? 0,
           'time': DateTime.now().toIso8601String()
         });
       }
@@ -136,139 +107,131 @@ class BarcodeReaderState extends State<BarcodeReader> {
     }
   }
 
-  Future<void> getProducts() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String url = Settings.instance.getUrl('product');
-    String? email = prefs.getString('email');
-    String? password = prefs.getString('password');
-    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
-
-    final Map<String, String> requestHeaders = {
-      'Content-type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': basicAuth,
-    };
-
-    try {
-      final response = await http.get(Uri.parse(url), headers: requestHeaders);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> products = data['content'];
-        _productList = {
-          for (var product in products)
-            product['id']: {
-              'name': product['name'],
-              'price': product['price'].toString(),
-              'description': product['description'],
-              'stock': product['stock'].toString(),
-            }
-        };
-        print(_productList);
-        print("Product list loaded successfully");
-      } else {
-        print("Failed to fetch data. Status code: ${response.statusCode}");
-      }
-    } catch (error) {
-      print("Error occurred while fetching data: $error");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Barcode Scan'),
-          backgroundColor: Color(0xFFFFA500),
+          backgroundColor: Colors.deepOrange,
           actions: <Widget>[
             IconButton(
               icon: Icon(Icons.shopping_cart),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text("Basket"),
-                      content: SingleChildScrollView(
-                        child: ListBody(
-                          children: _basketItems.map((item) {
-                            var matchingProduct = _productList[item] ??
-                                {'name': 'Unknown Product', 'price': '0'};
-                            return Text(
-                                '${matchingProduct['name']} - \$${matchingProduct['price']}');
-                          }).toList(),
-                        ),
-                      ),
-                      actions: <Widget>[
-                        TextButton(
-                          child: Text('Buy'),
-                          onPressed: () {
-                            sendBasketItems();
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                        TextButton(
-                          child: Text('Close'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
+              onPressed: () => _showShoppingCartDialog(context),
             ),
           ],
         ),
-        body: Builder(builder: (BuildContext context) {
-          return Container(
-            alignment: Alignment.center,
-            child: Flex(
-              direction: Axis.vertical,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                ElevatedButton(
-                  onPressed: () => scanBarcodeNormal(),
-                  child: Text('Start barcode scan'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                  ),
+        body: Container(
+          alignment: Alignment.center,
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              ElevatedButton.icon(
+                icon: Icon(Icons.camera_alt, color: Colors.white),
+                label: Text('Start Barcode Scan'),
+                onPressed: scanBarcodeNormal,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding:
+                      EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+                  textStyle: TextStyle(fontSize: 16),
                 ),
-                ElevatedButton(
-                  onPressed: () => scanQR(),
-                  child: Text('Start QR scan'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => startBarcodeScanStream(),
-                  child: Text('Start barcode scan stream'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                  ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _basketItems.length,
-                    itemBuilder: (context, index) {
-                      var item = _basketItems[index];
-                      var product = _productList[item] ??
-                          {'name': 'Unknown Product', 'price': '0'};
-                      return ListTile(
-                        title: Text('${product['name']}'),
-                        subtitle: Text('Price: \$${product['price']}'),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
+              ),
+              Expanded(
+                child: _buildProductList(),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _buildProductList() {
+    return ListView.builder(
+      itemCount: _basketItems.length,
+      itemBuilder: (context, index) {
+        var item = _basketItems[index];
+        var product =
+            _productList[item] ?? {'name': 'Unknown Product', 'price': '0'};
+        return Card(
+          elevation: 2.0,
+          margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+          child: ListTile(
+            title: Text(product['name']!,
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('Price: \$${product['price']}'),
+            leading: Icon(Icons.shopping_basket, color: Colors.orange),
+            trailing: IconButton(
+              icon: Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _removeItemFromBasket(index),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+void _showShoppingCartDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Basket", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: _basketItems.map((item) {
+              var matchingProduct = _productList[item] ??
+                  {'name': 'Unknown Product', 'price': '0'};
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                    children: <TextSpan>[
+                      TextSpan(text: matchingProduct['name'], style: TextStyle(fontWeight: FontWeight.bold)),
+                      TextSpan(text: ' - '),
+                      TextSpan(text: '\$${matchingProduct['price']}', style: TextStyle(color: Colors.green)),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Buy'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white, 
+              backgroundColor: Colors.green, 
+            ),
+            onPressed: () {
+              sendBasketItems();
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Close'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+  void _removeItemFromBasket(int index) {
+    setState(() {
+      _basketItems.removeAt(index);
+    });
   }
 }

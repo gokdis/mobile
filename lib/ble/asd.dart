@@ -48,8 +48,7 @@ void onScanResultReceived(double x, double y) {
     'C7:10:69:07:FB:51': Point(280, 640),
     'F5:E5:8C:26:DB:7A': Point(590, 640),
  * 
- *  Settings.globalBeaconCoordinates : {EB:6F:20:3B:89:E2: Point(x: 435.0, y: 767.0, z: 0.0), 
- * C7:10:69:07:FB:51: Point(x: 280.0, y: 640.0, z: 0.0), F5:E5:8C:26:DB:7A: Point(x: 590.0, y: 640.0, z: 0.0)}
+
 
  */
 
@@ -60,14 +59,16 @@ class Deneme extends State<BLEScannerWidget> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // variables for aisle
-  late Future<void> _aislesFuture;
   List<Aisle> aisleCoordinates = [];
   List<dynamic> aisleData = [];
   Set<String> uniqueAisles = Set();
-  bool dataLoaded = false;
 
   // coordinates for old map
-  static Map<String, Point> beaconCoordinates = {};
+  static Map<String, Point> beaconCoordinates = {
+    'EB:6F:20:3B:89:E2': Point(435, 767),
+    'C7:10:69:07:FB:51': Point(280, 640),
+    'F5:E5:8C:26:DB:7A': Point(590, 640),
+  };
 
   double x = 0.0;
   double y = 0.0;
@@ -79,15 +80,11 @@ class Deneme extends State<BLEScannerWidget> {
         userLocation = Point(event.x, event.y);
       });
     });
-    print(beaconCoordinates);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final global = Provider.of<Global>(context, listen: false);
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
-
-    print(
-        'Settings.globalBeaconCoordinates : ${Settings.globalBeaconCoordinates}');
   }
 
   @override
@@ -117,8 +114,6 @@ class Deneme extends State<BLEScannerWidget> {
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
-
-        beaconCoordinates = Settings.globalBeaconCoordinates;
 
         Point? point = beaconCoordinates[deviceMAC];
 
@@ -278,7 +273,6 @@ class Deneme extends State<BLEScannerWidget> {
                 for (var aisle in global.aisleCoordinates)
                   if (aisle.visible)
                     Positioned(
-                  
                       left: calculateXAisle(aisle.coordinates.x, context),
                       top: calculateYAisle(aisle.coordinates.y, context),
                       child: Container(
@@ -288,8 +282,8 @@ class Deneme extends State<BLEScannerWidget> {
                       ),
                     ),
                 Positioned(
-                  left: calculateXAisle(435, context),
-                  top: calculateYAisle(630, context),
+                  left: calculateXAisle(userLocation.x, context),
+                  top: calculateYAisle(userLocation.y, context),
                   child: Icon(
                     Icons.location_on,
                     color: Colors.amber,

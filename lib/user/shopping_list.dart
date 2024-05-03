@@ -1,25 +1,9 @@
-import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:flutter/material.dart';
 import 'package:gokdis/user/special_offer.dart';
 import 'package:gokdis/ble/barcode_reader.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:provider/provider.dart';
-import 'package:gokdis/settings.dart';
 import '../ble/asd.dart';
 import 'package:gokdis/ble/global_variables.dart';
-
-class BeaconProvider with ChangeNotifier {
-  List<dynamic> _beaconData = [];
-
-  List<dynamic> get beaconData => _beaconData;
-
-  void setBeaconData(List<dynamic> beaconData) {
-    _beaconData = beaconData;
-    notifyListeners();
-  }
-}
 
 class ShoppingListWidget extends StatefulWidget {
   @override
@@ -29,186 +13,120 @@ class ShoppingListWidget extends StatefulWidget {
 class ShoppingListWidgetState extends State<ShoppingListWidget> {
   List<dynamic> beaconData = [];
   late Set<String> uniqueAisles;
-
-
+  late Map<String, String> sectionList = {};
+  Map<String, List<Map<String, String>>> aisleProducts = {};
+  bool dataLoaded = false;
   @override
   void initState() {
     super.initState();
-    getBeacons();
-    getSections();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final global = Provider.of<Global>(context, listen: false);
-      global.getAislesFromTXT();
+      global.loadData();
     });
-    uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
 
+    uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
   }
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
- @override
-Widget build(BuildContext context) {
-  return Consumer<Global>(
-    builder: (context, global, child) {
-      List<String> uniqueAislesList = global.uniqueAisles.toList();
-      return Scaffold(
-        key: _scaffoldKey,
-        appBar: AppBar(
-          leading: IconButton(
-              icon: Icon(Icons.menu),
-              onPressed: () {
-                _scaffoldKey.currentState?.openDrawer();
-              }),
-          title: Text('Shopping List'),
-          backgroundColor: Color(0xFFFFA500),
-        ),
-        drawer: Drawer(
-          child: ListView.builder(
-            itemCount: uniqueAislesList.length,
-            itemBuilder: (BuildContext context, int index) {
-              var aisleId = uniqueAislesList[index];
-              return ListTile(
-                title: Text(aisleId),
-                onTap: () {
-                  _scaffoldKey.currentState?.closeDrawer();
-           
-                  setState(() {
-                    for (var aisle in global.aisleCoordinates) { 
-                      if (aisle.name == aisleId) {
-                      }
-                    }
-                  });
-                },
-              );
-            },
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<Global>(
+      builder: (context, global, child) {
+        List<String> uniqueAislesList = global.uniqueAisles.toList();
+
+        return Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            leading: IconButton(
+                icon: Icon(Icons.menu, color: Colors.white),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                }),
+            title: Text('Shopping List', style: TextStyle(color: Colors.white)),
+            backgroundColor: Color(0xFF333366),
           ),
-        ),
-        bottomNavigationBar: _buildBottomNavigationBar(),
+          drawer: Drawer(
+            child: ListView.builder(
+              itemCount: uniqueAislesList.length,
+              itemBuilder: (BuildContext context, int index) {
+                String aisleId = uniqueAislesList[index];
+                return ExpansionTile(
+                  leading: Icon(Icons.list, color: Color(0xFF333366)),
+                  title: Text(aisleId,
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  children: _buildProductList(aisleId),
+                  backgroundColor: Colors.white,
+                  collapsedBackgroundColor: Colors.grey[200],
+                  iconColor: Color(0xFF333366),
+                  textColor: Color(0xFF333366),
+                  collapsedTextColor: Colors.black,
+                  onExpansionChanged: (bool expanded) {
+                    if (expanded &&
+                        (aisleProducts[aisleId] == null ||
+                            aisleProducts[aisleId]!.isEmpty)) {
+                      String sectionId = global.sectionList.entries
+                          .firstWhere(
+                              (entry) =>
+                                  entry.value.toLowerCase().trim() ==
+                                  aisleId.toLowerCase().trim(),
+                              orElse: () => MapEntry(
+                                  "defaultSectionId", "defaultSectionId"))
+                          .key;
+
+                      List<Map<String, String>> products =
+                          global.getProductsBySection(sectionId);
+                      setState(() {
+                        aisleProducts[aisleId] = products;
+                      });
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+          bottomNavigationBar: _buildBottomNavigationBar(),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildProductList(String aisleId) {
+    List<Map<String, String>> products = aisleProducts[aisleId] ?? [];
+    return products.map((product) {
+      return ListTile(
+        title: Text(product['name']!, style: TextStyle(color: Colors.black)),
+        trailing: Text('Price: ${product['price']}',
+            style: TextStyle(color: Color(0xFF333366))),
+        onTap: () {}, 
       );
-    },
-  );
-}
+    }).toList();
+  }
 
-
-  // Shopping list functions
+  // bottom navigation bar
 
   Widget _buildBottomNavigationBar() {
     return BottomAppBar(
+      color: Color(0xFF333366),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
-          ElevatedButton(
-            onPressed: () {
-              navigateToMap();
-            },
-            child: Icon(Icons.map),
-            style: ElevatedButton.styleFrom(
-              shape: CircleBorder(),
-              padding: EdgeInsets.all(16),
-              backgroundColor: Colors.orange,
-            ),
+          IconButton(
+            icon: Icon(Icons.map, color: Colors.white),
+            onPressed: navigateToMap,
           ),
-          ElevatedButton(
-            onPressed: () {
-              navigateToSpecialOffer();
-            },
-            child: Icon(Icons.campaign),
-            style: ElevatedButton.styleFrom(
-              shape: CircleBorder(),
-              padding: EdgeInsets.all(16),
-              backgroundColor: Colors.orange,
-            ),
+          IconButton(
+            icon: Icon(Icons.campaign, color: Colors.white),
+            onPressed: navigateToSpecialOffer,
           ),
-          ElevatedButton(
-            onPressed: () {
-              navigateToBarcodeReader();
-            },
-            child: Icon(Icons.barcode_reader),
-            style: ElevatedButton.styleFrom(
-              shape: CircleBorder(),
-              padding: EdgeInsets.all(16),
-              backgroundColor: Colors.orange,
-            ),
+          IconButton(
+            icon: Icon(Icons.barcode_reader, color: Colors.white),
+            onPressed: navigateToBarcodeReader,
           ),
         ],
       ),
     );
-  }
-
-  // get beacons from server
-
-  Future<void> getBeacons() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    String url = Settings.instance.getUrl('beacon');
-    String? email = prefs.getString('email');
-    String? password = prefs.getString('password');
-    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
-
-    final Map<String, String> requestHeaders = {
-      'Content-type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': basicAuth,
-    };
-
-    try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: requestHeaders,
-      );
-
-      if (response.statusCode == 200) {
-        beaconData = jsonDecode(response.body);
-        Provider.of<BeaconProvider>(context, listen: false)
-            .setBeaconData(beaconData);
-        //   print('before update : $beaconData');
-        updateGlobalBeaconCoordinates(beaconData);
-        print('After updat e: ${Settings.globalBeaconCoordinates}');
-      } else {
-        print("Failed to fetch data. Status code: ${response.statusCode}");
-      }
-    } catch (error) {
-      print("Error occurred while fetching data: $error");
-    }
-  }
-
-  void updateGlobalBeaconCoordinates(List<dynamic> beaconData) {
-    for (var beacon in beaconData) {
-      // String id = beacon['id'];
-      String mac = beacon['mac'].toString().toUpperCase();
-      double x = beacon['x'].toDouble();
-      double y = beacon['y'].toDouble();
-      Settings.globalBeaconCoordinates[mac] = Point(x, y);
-    }
-  }
-
-  Future<void> getSections() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String url = Settings.instance.getUrl('section');
-    String? email = prefs.getString('email');
-    String? password = prefs.getString('password');
-    String basicAuth = 'Basic ' + base64Encode(utf8.encode('$email:$password'));
-
-    final Map<String, String> requestHeaders = {
-      'Content-type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': basicAuth,
-    };
-
-    try {
-      final response = await http.get(Uri.parse(url), headers: requestHeaders);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        print("sections : $data");
-      } else {
-        print("Failed to fetch data. Status code: ${response.statusCode}");
-      }
-    } catch (error) {
-      print("Error occurred while fetching data: $error");
-    }
   }
 
   // Navigation functions
