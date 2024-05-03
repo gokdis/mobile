@@ -28,7 +28,6 @@ class Global extends ChangeNotifier {
         .where((entry) => entry.value['sectionId'] == sectionId)
         .map((entry) => entry.value)
         .toList();
-        
   }
 
   Future<void> getAislesFromTXT() async {
@@ -78,8 +77,8 @@ class Global extends ChangeNotifier {
     try {
       final response = await http.get(Uri.parse(url), headers: requestHeaders);
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        updateProductList(data['content']);
+        final List<dynamic> data = jsonDecode(response.body);
+        updateProductList(data);
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
       }
@@ -103,6 +102,7 @@ class Global extends ChangeNotifier {
       }
     }
     _productList = newProductList;
+    print(newProductList.entries.length);
     notifyListeners();
   }
 
