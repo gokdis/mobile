@@ -81,7 +81,7 @@ class Deneme extends State<BLEScannerWidget> {
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
-    startScan();
+    //startScan();
   }
 
   @override
@@ -232,8 +232,8 @@ class Deneme extends State<BLEScannerWidget> {
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
                 }),
-            title: Text('Supermarket Map'),
-            backgroundColor: Color(0xFFFFA500),
+            title: Text('Supermarket Map', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.deepOrange,
           ),
           drawer: Drawer(
             child: ListView.builder(

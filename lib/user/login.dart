@@ -106,9 +106,9 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text('Login'),
+          title: Text('Login', style: TextStyle(color: Colors.white)),
           automaticallyImplyLeading: false,
-          backgroundColor: Color(0xFFFFA500),
+          backgroundColor: Colors.deepOrange,
         ),
         body: Center(
           child: Padding(
