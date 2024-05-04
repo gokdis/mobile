@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'dart:async';
 import 'dart:convert';
+import 'package:epitaph_ips/epitaph_graphs/graphs/epitaph_graph.dart';
+import 'package:epitaph_ips/epitaph_graphs/graphs/graph.dart';
+import 'package:epitaph_ips/epitaph_ips/tracking/mapper.dart';
 import 'package:gokdis/ble/global_variables.dart';
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
@@ -123,8 +126,12 @@ class Deneme extends State<BLEScannerWidget> {
         }
       }
 
-      print("device rssi values: $deviceRssiValues");
-
+      print("<------------->");
+      deviceRssiValues.forEach((key, value) {
+        print('$key: $value\n');
+      });
+      print("<------------->\n");
+      
       //Calculate user location with filter
       //Initialize calculator
       Calculator calculator = LMA();
@@ -282,8 +289,8 @@ class Deneme extends State<BLEScannerWidget> {
                       ),
                     ),
                 Positioned(
-                  left: convertToMapX(userLocation.x),
-                  top: convertToMapY(userLocation.y),
+                  left: convertToMapX(userLocation.x)-5,
+                  top: convertToMapY(userLocation.y)-5,
                   child: Icon(
                     Icons.location_on,
                     color: Colors.amber,
@@ -293,9 +300,9 @@ class Deneme extends State<BLEScannerWidget> {
                 Positioned(
                   //C7
                   left: convertToMapX(
-                      beaconCoordinates.entries.elementAt(1).value.x),
+                          beaconCoordinates.entries.elementAt(1).value.x)-5,
                   top: convertToMapY(
-                      beaconCoordinates.entries.elementAt(1).value.y),
+                          beaconCoordinates.entries.elementAt(1).value.y)-5, 
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -305,9 +312,9 @@ class Deneme extends State<BLEScannerWidget> {
                 Positioned(
                   //F5
                   left: convertToMapX(
-                      beaconCoordinates.entries.elementAt(2).value.x),
+                          beaconCoordinates.entries.elementAt(2).value.x)-5,
                   top: convertToMapY(
-                      beaconCoordinates.entries.elementAt(2).value.y),
+                          beaconCoordinates.entries.elementAt(2).value.y)-5,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -317,9 +324,9 @@ class Deneme extends State<BLEScannerWidget> {
                 Positioned(
                   //EB
                   left: convertToMapX(
-                      beaconCoordinates.entries.elementAt(0).value.x),
+                          beaconCoordinates.entries.elementAt(0).value.x)-5,
                   top: convertToMapY(
-                      beaconCoordinates.entries.elementAt(0).value.y),
+                          beaconCoordinates.entries.elementAt(0).value.y)-5,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
