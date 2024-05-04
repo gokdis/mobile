@@ -1,9 +1,4 @@
-import 'dart:math';
 import 'dart:async';
-import 'dart:convert';
-import 'package:epitaph_ips/epitaph_graphs/graphs/epitaph_graph.dart';
-import 'package:epitaph_ips/epitaph_graphs/graphs/graph.dart';
-import 'package:epitaph_ips/epitaph_ips/tracking/mapper.dart';
 import 'package:gokdis/ble/global_variables.dart';
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
@@ -86,7 +81,7 @@ class Deneme extends State<BLEScannerWidget> {
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
-    startScan();
+    //startScan();
   }
 
   @override
@@ -241,8 +236,8 @@ class Deneme extends State<BLEScannerWidget> {
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
                 }),
-            title: Text('Shopping List'),
-            backgroundColor: Color(0xFFFFA500),
+            title: Text('Supermarket Map', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.deepOrange,
           ),
           drawer: Drawer(
             child: ListView.builder(

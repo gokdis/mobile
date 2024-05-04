@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gokdis/user/special_offer.dart';
-import 'package:gokdis/ble/barcode_reader.dart';
 import 'package:provider/provider.dart';
-import '../ble/asd.dart';
 import 'package:gokdis/ble/global_variables.dart';
 
 class ShoppingListWidget extends StatefulWidget {
@@ -40,12 +37,12 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
           key: _scaffoldKey,
           appBar: AppBar(
             leading: IconButton(
-                icon: Icon(Icons.menu, color: Colors.white),
+                icon: Icon(Icons.menu),
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
                 }),
             title: Text('Shopping List', style: TextStyle(color: Colors.white)),
-            backgroundColor: Color(0xFF333366),
+            backgroundColor: Colors.deepOrange,
           ),
           drawer: Drawer(
             child: ListView.builder(
@@ -86,75 +83,35 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
               },
             ),
           ),
-          bottomNavigationBar: _buildBottomNavigationBar(),
         );
       },
     );
   }
 
-  List<Widget> _buildProductList(String aisleId) {
-    List<Map<String, String>> products = aisleProducts[aisleId] ?? [];
-    return products.map((product) {
-      return ListTile(
-        title: Text(product['name']!, style: TextStyle(color: Colors.black)),
-        trailing: Text('Price: ${product['price']}',
-            style: TextStyle(color: Color(0xFF333366))),
-        onTap: () {}, 
-      );
-    }).toList();
-  }
-
-  // bottom navigation bar
-
-  Widget _buildBottomNavigationBar() {
-    return BottomAppBar(
-      color: Color(0xFF333366),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          IconButton(
-            icon: Icon(Icons.map, color: Colors.white),
-            onPressed: navigateToMap,
+List<Widget> _buildProductList(String aisleId) {
+  List<Map<String, String>> products = aisleProducts[aisleId] ?? [];
+  return products.map((product) {
+    return ListTile(
+      title: Row(
+        children: [
+          Expanded( 
+            child: Text(product['name']!, style: TextStyle(color: Colors.black)),
           ),
           IconButton(
-            icon: Icon(Icons.campaign, color: Colors.white),
-            onPressed: navigateToSpecialOffer,
-          ),
-          IconButton(
-            icon: Icon(Icons.barcode_reader, color: Colors.white),
-            onPressed: navigateToBarcodeReader,
+            icon: Icon(Icons.add, color: Colors.black), 
+            onPressed: () {
+              print("Add button pressed for ${product['name']}");
+            },
           ),
         ],
       ),
+      trailing: Text('Price: ${product['price']}',
+          style: TextStyle(color: Color(0xFF333366))),
+      onTap: () {
+        print("ListTile tapped for ${product['name']}");
+      },
     );
-  }
+  }).toList();
+}
 
-  // Navigation functions
-
-  void navigateToMap() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BLEScannerWidget(),
-      ),
-    );
-  }
-
-  void navigateToSpecialOffer() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SpecialOffer(),
-      ),
-    );
-  }
-
-  void navigateToBarcodeReader() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BarcodeReader(),
-      ),
-    );
-  }
 }

@@ -112,7 +112,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Barcode Scan'),
+          title: const Text('Barcode Scan', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.deepOrange,
           actions: <Widget>[
             IconButton(

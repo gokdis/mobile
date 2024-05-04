@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gokdis/main.dart';
 import 'package:gokdis/user/register.dart';
-import 'package:gokdis/user/shopping_list.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
           response.statusCode == 403 ||
           response.statusCode == 204) {
         await prefs.setBool('isLoggedIn', true);
-        navigateToShoppingList();
+        navigateToMainScreen();
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
       }
@@ -86,12 +86,10 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void navigateToShoppingList() {
+  void navigateToMainScreen() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => ShoppingListWidget(),
-      ),
+      MaterialPageRoute(builder: (context) => MainLayout()),
     );
   }
 
@@ -108,9 +106,9 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text('Login'),
+          title: Text('Login', style: TextStyle(color: Colors.white)),
           automaticallyImplyLeading: false,
-          backgroundColor: Color(0xFFFFA500),
+          backgroundColor: Colors.deepOrange,
         ),
         body: Center(
           child: Padding(

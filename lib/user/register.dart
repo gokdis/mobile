@@ -123,8 +123,8 @@ class RegistrationPageState extends State<RegistrationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Registration"),
-        backgroundColor: Colors.orange,
+        title: Text("Registration", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.deepOrange,
       ),
       body: Form(
         key: _formKey,
