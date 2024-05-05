@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:gokdis/ble/global_variables.dart';
 
 import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
@@ -15,6 +16,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:gokdis/ble/stream_controller.dart';
+import 'package:moving_average/moving_average.dart';
 
 class Aisle {
   final String name;
@@ -44,6 +46,10 @@ void onScanResultReceived(double x, double y) {
     'C7:10:69:07:FB:51': Point(280, 640),
     'F5:E5:8C:26:DB:7A': Point(590, 640),
  * 
+ * 
+ *     'EB:6F:20:3B:89:E2': Point(4.35, 7.67),
+    'C7:10:69:07:FB:51': Point(2.8, 6.4),
+    'F5:E5:8C:26:DB:7A': Point(5.8, 6.4),
 
 
  */
@@ -52,6 +58,9 @@ class Deneme extends State<BLEScannerWidget> {
   Map<RealBeacon, List<int>> deviceRssiValues = {};
   List<RealBeacon> nearestDevices = [];
   Point userLocation = Point(0, 0);
+  Point previousUserLocation = Point(0, 0);
+
+  List<Point> userLocationHistory = [];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // variables for aisle
@@ -61,9 +70,9 @@ class Deneme extends State<BLEScannerWidget> {
 
   // coordinates for old map
   static Map<String, Point> beaconCoordinates = {
-    'EB:6F:20:3B:89:E2': Point(4.35, 7.67),
-    'C7:10:69:07:FB:51': Point(2.8, 6.4),
-    'F5:E5:8C:26:DB:7A': Point(5.8, 6.4),
+    'EB:6F:20:3B:89:E2': Point(6.8, 6.5),
+    'C7:10:69:07:FB:51': Point(8.0, 5.0),
+    'F5:E5:8C:26:DB:7A': Point(5.0, 5.0),
   };
 
   double x = 0.0;
@@ -81,7 +90,7 @@ class Deneme extends State<BLEScannerWidget> {
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
-    //startScan();
+    startScan();
   }
 
   @override
@@ -108,6 +117,7 @@ class Deneme extends State<BLEScannerWidget> {
   }
 
   void getRSSI() {
+    Point previousUserLocation = userLocation; // Store previous user location
     FlutterBluePlus.scanResults.listen((List<ScanResult> scanResults) {
       for (ScanResult result in scanResults) {
         String deviceMAC = result.device.remoteId.toString();
@@ -115,9 +125,24 @@ class Deneme extends State<BLEScannerWidget> {
         Point? point = beaconCoordinates[deviceMAC];
 
         if (point != null) {
-          RealBeacon beacon =
-              RealBeacon(deviceMAC, 'name', Point(point.x, point.y));
-          updateDeviceRssiValues(beacon, result.rssi);
+          if (deviceMAC == "EB:6F:20:3B:89:E2") {
+            RealBeacon beacon =
+                RealBeacon(deviceMAC, '10002', Point(point.x, point.y));
+            int measuredPower = -63;
+            updateDeviceRssiValues(beacon, result.rssi, measuredPower);
+          }
+          if (deviceMAC == "F5:E5:8C:26:DB:7A") {
+            RealBeacon beacon =
+                RealBeacon(deviceMAC, '10000', Point(point.x, point.y));
+            int measuredPower = -68;
+            updateDeviceRssiValues(beacon, result.rssi, measuredPower);
+          }
+          if (deviceMAC == "C7:10:69:07:FB:51") {
+            RealBeacon beacon =
+                RealBeacon(deviceMAC, '26268', Point(point.x, point.y));
+            int measuredPower = -64;
+            updateDeviceRssiValues(beacon, result.rssi, measuredPower);
+          }
         }
       }
 
@@ -125,8 +150,7 @@ class Deneme extends State<BLEScannerWidget> {
       deviceRssiValues.forEach((key, value) {
         print('$key: $value\n');
       });
-      print("<------------->\n");
-      
+
       //Calculate user location with filter
       //Initialize calculator
       Calculator calculator = LMA();
@@ -159,8 +183,27 @@ class Deneme extends State<BLEScannerWidget> {
       //Calculate user location
       if (nearestDevices.length == 3) {
         tracker.initiateTrackingCycle(nearestDevices);
-        userLocation = tracker.calculatedPosition; //finalPosition
+        Point userLocationTemp = Point(0, 0);
 
+        userLocationTemp = tracker.calculatedPosition; //finalPosition
+
+        //Limit user location change
+        double deltaX = userLocationTemp.x - previousUserLocation.x;
+        double deltaY = userLocationTemp.y - previousUserLocation.y;
+
+        double distance = sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance > 0.2) {
+          double ratio = 0.2 / distance;
+          userLocationTemp = Point(
+            previousUserLocation.x + deltaX * ratio,
+            previousUserLocation.y + deltaY * ratio,
+          );
+        }
+
+        userLocation = userLocationTemp;
+        previousUserLocation = userLocation;
+        userLocation = Point(userLocation.x, userLocation.y);
         onScanResultReceived(userLocation.x, userLocation.y);
 
         print("User location: $userLocation");
@@ -175,7 +218,7 @@ class Deneme extends State<BLEScannerWidget> {
   }
 
   // Store RealBeacons and RSSI values
-  void updateDeviceRssiValues(RealBeacon beacon, int rssi) {
+  void updateDeviceRssiValues(RealBeacon beacon, int rssi, int measuredPower) {
     // Check if the beacon's ID already exists in the map
     bool beaconExists = deviceRssiValues.keys.any((key) => key.id == beacon.id);
 
@@ -183,7 +226,20 @@ class Deneme extends State<BLEScannerWidget> {
       // If beacon exists, add rssi value to the list in the key for that beacon
       List<int> rssiList = deviceRssiValues[
           deviceRssiValues.keys.firstWhere((key) => key.id == beacon.id)]!;
+
       rssiList.add(rssi);
+
+      // Calculate the difference between the current and previous RSSI values
+      int previousRssi = rssiList.isNotEmpty ? rssiList.last : rssi;
+      int rssiDifference = (rssi - previousRssi).abs(); // Absolute difference
+      // Limit the change in RSSI value to a maximum of 3
+      if (rssiDifference > 3) {
+        if (rssi > previousRssi) {
+          rssi = previousRssi + 3;
+        } else {
+          rssi = previousRssi - 3;
+        }
+      }
 
       // If the number of elements exceeds 10, remove the first element
       if (rssiList.length > 10) {
@@ -194,13 +250,37 @@ class Deneme extends State<BLEScannerWidget> {
       deviceRssiValues[beacon] = [rssi];
     }
 
-    getNearestDevices();
+    getNearestDevices(measuredPower);
   }
 
   // Get the average of RSSIs for each beacon and get the nearest 3 devices
-  void getNearestDevices() {
+  void getNearestDevices(int measuredPower) {
     Map<RealBeacon, double> averageRssiMap = {};
 
+/*     deviceRssiValues.forEach((beacon, rssiList) {
+      final simpleMovingAverage = MovingAverage<num>(
+        averageType: AverageType.simple,
+        windowSize: 10,
+        partialStart: false,
+        getValue: (num n) => n,
+        add: (List<num> data, num value) => value,
+      );
+      final weightedAverage3 = simpleMovingAverage(rssiList);
+
+      List<num> movingRssiList =
+          weightedAverage3.map((value) => value.round()).toList();
+
+      // Calculate the average of movingRssiList
+      double sum = 0;
+      for (var value in movingRssiList) {
+        sum += value;
+      }
+      double averageMovingRssi = sum / movingRssiList.length;
+      // Store average RSSI in the map
+      averageRssiMap[beacon] = averageMovingRssi;
+    }); */
+
+    //Calcualte average rssi in list
     deviceRssiValues.forEach((beacon, rssiList) {
       double averageRssi = rssiList.isNotEmpty
           ? rssiList.reduce((a, b) => a + b) / rssiList.length
@@ -218,8 +298,15 @@ class Deneme extends State<BLEScannerWidget> {
     // Update RSSI for nearest devices
     nearestDevices.forEach((beacon) {
       double averageRssi = averageRssiMap[beacon]!;
-      int averageRssiInt = averageRssi.toInt();
-      beacon.rssiUpdate(averageRssiInt); // Call rssiUpdate
+      int averageRssiInt;
+      if (averageRssi.isFinite) {
+        averageRssiInt = averageRssi.toInt();
+      } else {
+        averageRssiInt = -1; // Setting a default value
+      }
+      if (averageRssiInt != -1) {
+        beacon.rssiUpdate(averageRssiInt, measuredPower); // Call rssiUpdate
+      }
     });
   }
 
@@ -236,7 +323,8 @@ class Deneme extends State<BLEScannerWidget> {
                 onPressed: () {
                   _scaffoldKey.currentState?.openDrawer();
                 }),
-            title: Text('Supermarket Map', style: TextStyle(color: Colors.white)),
+            title:
+                Text('Supermarket Map', style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.deepOrange,
           ),
           drawer: Drawer(
@@ -284,8 +372,8 @@ class Deneme extends State<BLEScannerWidget> {
                       ),
                     ),
                 Positioned(
-                  left: convertToMapX(userLocation.x)-5,
-                  top: convertToMapY(userLocation.y)-5,
+                  left: convertToMapX(userLocation.x) - 5,
+                  top: convertToMapY(userLocation.y) - 5,
                   child: Icon(
                     Icons.location_on,
                     color: Colors.amber,
@@ -295,9 +383,11 @@ class Deneme extends State<BLEScannerWidget> {
                 Positioned(
                   //C7
                   left: convertToMapX(
-                          beaconCoordinates.entries.elementAt(1).value.x)-5,
+                          beaconCoordinates.entries.elementAt(1).value.x) -
+                      5,
                   top: convertToMapY(
-                          beaconCoordinates.entries.elementAt(1).value.y)-5, 
+                          beaconCoordinates.entries.elementAt(1).value.y) -
+                      5,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -307,9 +397,11 @@ class Deneme extends State<BLEScannerWidget> {
                 Positioned(
                   //F5
                   left: convertToMapX(
-                          beaconCoordinates.entries.elementAt(2).value.x)-5,
+                          beaconCoordinates.entries.elementAt(2).value.x) -
+                      5,
                   top: convertToMapY(
-                          beaconCoordinates.entries.elementAt(2).value.y)-5,
+                          beaconCoordinates.entries.elementAt(2).value.y) -
+                      5,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -319,9 +411,11 @@ class Deneme extends State<BLEScannerWidget> {
                 Positioned(
                   //EB
                   left: convertToMapX(
-                          beaconCoordinates.entries.elementAt(0).value.x)-5,
+                          beaconCoordinates.entries.elementAt(0).value.x) -
+                      5,
                   top: convertToMapY(
-                          beaconCoordinates.entries.elementAt(0).value.y)-5,
+                          beaconCoordinates.entries.elementAt(0).value.y) -
+                      5,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,

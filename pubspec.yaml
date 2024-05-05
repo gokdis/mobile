@@ -22,8 +22,12 @@ dependencies:
   flutter_barcode_scanner: ^2.0.0
   flutter_dotenv: ^5.1.0
   provider: ^6.1.2
-  epitaph_ips: ^0.0.1
+  epitaph_ips:
+    git:
+      url: https://github.com/gokdis/epitaph_ips
+      ref: main
   ml_linalg: ^13.12.2
+  moving_average: ^0.3.1
 
 dev_dependencies:
   flutter_test:

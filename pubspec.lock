@@ -60,10 +60,11 @@ packages:
   epitaph_ips:
     dependency: "direct main"
     description:
-      name: epitaph_ips
-      sha256: "757e59eb6d427c742be5c3a5fc8be823060cd5c68341f50ad87263cb888ef7ed"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: main
+      resolved-ref: "9f09bd9e4111be89c513acc079f17650ec31c9f2"
+      url: "https://github.com/gokdis/epitaph_ips"
+    source: git
     version: "0.0.1"
   fake_async:
     dependency: transitive
@@ -232,6 +233,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.10.2"
+  moving_average:
+    dependency: "direct main"
+    description:
+      name: moving_average
+      sha256: b064913cd11f64b13af6a298361b1e68e82933ab32c5ee7e631474b88870fc56
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
   nested:
     dependency: transitive
     description:
