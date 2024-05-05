@@ -47,9 +47,13 @@ void onScanResultReceived(double x, double y) {
     'F5:E5:8C:26:DB:7A': Point(590, 640),
  * 
  * 
- *     'EB:6F:20:3B:89:E2': Point(4.35, 7.67),
+ *  'EB:6F:20:3B:89:E2': Point(4.35, 7.67),
     'C7:10:69:07:FB:51': Point(2.8, 6.4),
     'F5:E5:8C:26:DB:7A': Point(5.8, 6.4),
+
+    'EB:6F:20:3B:89:E2': Point(6.8, 6.5),
+    'C7:10:69:07:FB:51': Point(8.0, 5.0),
+    'F5:E5:8C:26:DB:7A': Point(5.0, 5.0),
 
 
  */
@@ -70,9 +74,9 @@ class Deneme extends State<BLEScannerWidget> {
 
   // coordinates for old map
   static Map<String, Point> beaconCoordinates = {
-    'EB:6F:20:3B:89:E2': Point(6.8, 6.5),
-    'C7:10:69:07:FB:51': Point(8.0, 5.0),
-    'F5:E5:8C:26:DB:7A': Point(5.0, 5.0),
+    'EB:6F:20:3B:89:E2': Point(4.35, 7.67),
+    'C7:10:69:07:FB:51': Point(2.8, 6.4),
+    'F5:E5:8C:26:DB:7A': Point(5.8, 6.4),
   };
 
   double x = 0.0;
@@ -349,7 +353,7 @@ class Deneme extends State<BLEScannerWidget> {
                     setState(() {
                       for (var aisle in global.aisleCoordinates) {
                         if (aisle.name == aisleId) {
-                              printImageSize();
+                          //printImageSize();
 
                           aisle.visible = !aisle.visible;
                         }
@@ -378,14 +382,17 @@ class Deneme extends State<BLEScannerWidget> {
                       left: calculateXAisle(aisle.coordinates.x, context),
                       top: calculateYAisle(aisle.coordinates.y, context),
                       child: Container(
-                        width: calculateXAisle(16, context),
-                        height: calculateXAisle(16, context),
-                        color: Colors.blue.withOpacity(0.5),
+                        width: calculateXAisle(convertToMapX(0.55), context),
+                        height: calculateYAisle(convertToMapY(0.55), context),
+                        color: Color(int.parse(aisle.color.substring(1, 7),
+                                    radix: 16) +
+                                0xFF000000)
+                            .withOpacity(0.5),
                       ),
                     ),
                 Positioned(
-                  left: convertToMapX(userLocation.x) - 5,
-                  top: convertToMapY(userLocation.y) - 5,
+                  left: convertToMapX(userLocation.x) - 10,
+                  top: convertToMapY(userLocation.y) - 10,
                   child: Icon(
                     Icons.location_on,
                     color: Colors.amber,
@@ -396,10 +403,10 @@ class Deneme extends State<BLEScannerWidget> {
                   //C7
                   left: convertToMapX(
                           beaconCoordinates.entries.elementAt(1).value.x) -
-                      5,
+                      10,
                   top: convertToMapY(
                           beaconCoordinates.entries.elementAt(1).value.y) -
-                      5,
+                      10,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -410,10 +417,10 @@ class Deneme extends State<BLEScannerWidget> {
                   //F5
                   left: convertToMapX(
                           beaconCoordinates.entries.elementAt(2).value.x) -
-                      5,
+                      10,
                   top: convertToMapY(
                           beaconCoordinates.entries.elementAt(2).value.y) -
-                      5,
+                      10,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -424,10 +431,10 @@ class Deneme extends State<BLEScannerWidget> {
                   //EB
                   left: convertToMapX(
                           beaconCoordinates.entries.elementAt(0).value.x) -
-                      5,
+                      10,
                   top: convertToMapY(
                           beaconCoordinates.entries.elementAt(0).value.y) -
-                      5,
+                      10,
                   child: Icon(
                     Icons.bluetooth,
                     color: Colors.blue,
@@ -446,7 +453,7 @@ class Deneme extends State<BLEScannerWidget> {
   // Function to calculate X position based on grid position
   double calculateXAisle(double gridX, BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    double ratio = 1343 / screenWidth;
+    double ratio = 1343 / (screenWidth - 15);
 
     return gridX / ratio;
   }
@@ -454,7 +461,7 @@ class Deneme extends State<BLEScannerWidget> {
   // Function to calculate Y position based on grid position
   double calculateYAisle(double gridY, BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
-    double ratio = 2834 / screenHeight;
+    double ratio = 2834 / (screenHeight - 30);
 
     return gridY / ratio;
   }
