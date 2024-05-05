@@ -59,7 +59,7 @@ class Deneme extends State<BLEScannerWidget> {
   List<RealBeacon> nearestDevices = [];
   Point userLocation = Point(0, 0);
   Point previousUserLocation = Point(0, 0);
-
+  GlobalKey _imageKey = GlobalKey();
   List<Point> userLocationHistory = [];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -90,7 +90,16 @@ class Deneme extends State<BLEScannerWidget> {
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
-    startScan();
+    //startScan();
+  }
+
+  void printImageSize() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final RenderBox box =
+          _imageKey.currentContext?.findRenderObject() as RenderBox;
+      final size = box.size;
+      print("Width: ${size.width}, Height: ${size.height}");
+    });
   }
 
   @override
@@ -340,6 +349,8 @@ class Deneme extends State<BLEScannerWidget> {
                     setState(() {
                       for (var aisle in global.aisleCoordinates) {
                         if (aisle.name == aisleId) {
+                              printImageSize();
+
                           aisle.visible = !aisle.visible;
                         }
                       }
@@ -358,6 +369,7 @@ class Deneme extends State<BLEScannerWidget> {
               children: <Widget>[
                 Image.asset(
                   "assets/images/supermarket.png",
+                  key: _imageKey,
                   fit: BoxFit.contain,
                 ),
                 for (var aisle in global.aisleCoordinates)

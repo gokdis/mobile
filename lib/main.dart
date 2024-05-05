@@ -4,7 +4,7 @@ import 'package:gokdis/user/shopping_list.dart';
 import 'package:provider/provider.dart';
 import 'package:gokdis/ble/barcode_reader.dart';
 import 'package:gokdis/user/special_offer.dart';
-import 'package:gokdis/ble/asd.dart'; // Check if needed.
+import 'package:gokdis/ble/asd.dart'; 
 import 'user/login.dart';
 import 'package:gokdis/ble/global_variables.dart';
 
