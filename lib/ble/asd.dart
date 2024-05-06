@@ -327,6 +327,7 @@ class Deneme extends State<BLEScannerWidget> {
     return Consumer<Global>(
       builder: (context, global, child) {
         List<String> uniqueAislesList = global.uniqueAisles.toList();
+        aisleCoordinates = Provider.of<Global>(context, listen: false).aisleCoordinates;
         return Scaffold(
           key: _scaffoldKey,
           appBar: AppBar(
@@ -350,7 +351,7 @@ class Deneme extends State<BLEScannerWidget> {
                     _scaffoldKey.currentState?.closeDrawer();
 
                     setState(() {
-                      for (var aisle in global.aisleCoordinates) {
+                      for (var aisle in aisleCoordinates) {
                         if (aisle.name == aisleId) {
                           //printImageSize();
 
@@ -375,7 +376,7 @@ class Deneme extends State<BLEScannerWidget> {
                   key: _imageKey,
                   fit: BoxFit.contain,
                 ),
-                for (var aisle in global.aisleCoordinates)
+                for (var aisle in aisleCoordinates)
                   if (aisle.visible)
                     Positioned(
                       left: calculateXAisle(aisle.coordinates.x, context),

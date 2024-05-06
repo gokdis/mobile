@@ -1,3 +1,4 @@
+import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gokdis/ble/global_variables.dart';
@@ -87,7 +88,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
                   leading: Icon(Icons.list, color: Color(0xFF333366)),
                   title: Text(aisleId,
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  children: _buildProductList(aisleId),
+                  children: _buildProductList(aisleId, global),
                   backgroundColor: Colors.white,
                   collapsedBackgroundColor: Colors.grey[200],
                   iconColor: Color(0xFF333366),
@@ -180,7 +181,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
     );
   }
 
-  List<Widget> _buildProductList(String aisleId) {
+  List<Widget> _buildProductList(String aisleId, Global global) {
     List<Map<String, String>> products = aisleProducts[aisleId] ?? [];
     return products.map((product) {
       return ListTile(
@@ -194,6 +195,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
               icon: Icon(Icons.add, color: Colors.black),
               onPressed: () {
                 addToCart(product['name']!, product['price']!);
+                global.addOrUpdateAisle(aisleId, Point(128, 1296));
                 print("Add button pressed for ${product['name']}");
               },
             ),
