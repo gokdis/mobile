@@ -1,4 +1,3 @@
-import 'package:epitaph_ips/epitaph_ips/buildings/point.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gokdis/ble/global_variables.dart';
@@ -145,10 +144,12 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
                                 if (quantity > 1) {
                                   setState(() {
                                     cart[key]!['quantity']--;
+                                    global.highlightAisle(key, cart);
                                   });
                                 } else {
                                   setState(() {
                                     cart.remove(key);
+                                    global.highlightAisle(key, cart);
                                   });
                                 }
                               },
@@ -159,6 +160,7 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
                               onPressed: () {
                                 setState(() {
                                   cart[key]!['quantity']++;
+                                  global.highlightAisle(key, cart);
                                 });
                               },
                             ),
@@ -193,10 +195,9 @@ class ShoppingListWidgetState extends State<ShoppingListWidget> {
             ),
             IconButton(
               icon: Icon(Icons.add, color: Colors.black),
-              onPressed: () {
+              onPressed: () async {
                 addToCart(product['name']!, product['price']!);
-                global.addOrUpdateAisle(aisleId, Point(128, 1296));
-                print("Add button pressed for ${product['name']}");
+                global.highlightAisle(product['name']!, cart);
               },
             ),
           ],

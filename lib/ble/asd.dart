@@ -93,7 +93,7 @@ class Deneme extends State<BLEScannerWidget> {
       global.getAislesFromTXT();
     });
     uniqueAisles = Provider.of<Global>(context, listen: false).uniqueAisles;
-    //startScan();
+    startScan();
   }
 
   void printImageSize() {
@@ -354,8 +354,9 @@ class Deneme extends State<BLEScannerWidget> {
                       for (var aisle in aisleCoordinates) {
                         if (aisle.name == aisleId) {
                           //printImageSize();
-
+                          
                           aisle.visible = !aisle.visible;
+                          print(aisle);
                         }
                       }
                     });

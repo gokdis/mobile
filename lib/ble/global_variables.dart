@@ -25,28 +25,31 @@ class Global extends ChangeNotifier {
   Map<String, Point> get beaconCoordinates => _beaconCoordinates;
   Map<String, dynamic> get recommendedItems => _recommendedItems;
 
-  void addOrUpdateAisle(
-    String name,
-    Point coordinates,
-  ) {
-    int index = _aisleCoordinates.indexWhere((aisle) => aisle.name == name);
-    if (index != -1) {
-      _aisleCoordinates[index].coordinates = coordinates;
-      _aisleCoordinates[index].visible = true;
-    } else {
-      _aisleCoordinates.add(Aisle(name, coordinates, visible: true));
-      _uniqueAisles.add(name);
-    }
-    notifyListeners();
-    printVisibleAisles();
-  }
+  Future<void> highlightAisle(
+      String productName, Map<String, Map<String, dynamic>> cart) async {
+    String? sectionId;
+    productList.forEach((productId, productInfo) {
+      if (productInfo['name'] == productName) {
+        sectionId = productInfo['sectionId'];
+      }
+    });
 
-  void printVisibleAisles() {
-    for (var aisle in _aisleCoordinates) {
-      if (aisle.visible) {
-        print(aisle);
+    String sectionName = "";
+    
+    //TODO BUGFIX: If more than one product is added to shopping list and only one removed, it removes aisle highlight despite still having product belonging to that section
+    
+    sectionName = sectionList[sectionId]!;
+    for (var aisle in aisleCoordinates) {
+      if (aisle.name.toLowerCase() == sectionName.toLowerCase()) {
+        if (cart.containsKey(productName)) {
+          aisle.visible = true;
+        } else {
+          aisle.visible = false;
+        }
       }
     }
+
+    notifyListeners();
   }
 
   List<Map<String, String>> getProductsBySection(String sectionId) {
