@@ -80,6 +80,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
           'quantity': product['stock'] ?? 0,
           'time': DateTime.now().toIso8601String()
         });
+        print(itemsToSend);
       }
     }
 
@@ -158,20 +159,43 @@ class BarcodeReaderState extends State<BarcodeReader> {
       itemCount: _basketItems.length,
       itemBuilder: (context, index) {
         var item = _basketItems[index];
-        var product =
-            _productList[item] ?? {'name': 'Unknown Product', 'price': '0'};
+        var product = _productList[item] ??
+            {
+              'name': 'Unknown Product',
+              'price': '0',
+              'description': 'No description available'
+            };
         return Card(
           elevation: 2.0,
           margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
           child: ListTile(
             title: Text(product['name']!,
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Price: \$${product['price']}'),
+            subtitle: Text('Price: \¥${product['price']}'),
             leading: Icon(Icons.shopping_basket, color: Colors.orange),
             trailing: IconButton(
               icon: Icon(Icons.delete, color: Colors.red),
               onPressed: () => _removeItemFromBasket(index),
             ),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text(product['name']!),
+                    content: Text(product['description']!),
+                    actions: <Widget>[
+                      TextButton(
+                        child: Text('Close'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         );
       },
@@ -202,7 +226,7 @@ class BarcodeReaderState extends State<BarcodeReader> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         TextSpan(text: ' - '),
                         TextSpan(
-                            text: '\$${matchingProduct['price']}',
+                            text: '\¥${matchingProduct['price']}',
                             style: TextStyle(color: Colors.green)),
                       ],
                     ),
@@ -220,6 +244,9 @@ class BarcodeReaderState extends State<BarcodeReader> {
               ),
               onPressed: () {
                 sendBasketItems();
+                 setState(() {
+                  _basketItems.clear();
+                }); 
                 Navigator.of(context).pop();
               },
             ),
