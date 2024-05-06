@@ -21,7 +21,6 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider<Global>(
       create: (context) => Global(),
       child: MaterialApp(
-        title: 'My Application',
         home: LoginPage(), 
       ),
     );

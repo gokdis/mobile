@@ -16,7 +16,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:gokdis/ble/stream_controller.dart';
-import 'package:moving_average/moving_average.dart';
 
 class Aisle {
   final String name;
