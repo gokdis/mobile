@@ -13,6 +13,7 @@ class Global extends ChangeNotifier {
   Map<String, Map<String, String>> _productList = {};
   Map<String, String> _sectionList = {};
   Map<String, Point> _beaconCoordinates = {};
+  Map<String, dynamic> _recommendedItems = {};
 
   bool dataLoaded = false;
 
@@ -22,8 +23,12 @@ class Global extends ChangeNotifier {
   Map<String, Map<String, String>> get productList => _productList;
   Map<String, String> get sectionList => _sectionList;
   Map<String, Point> get beaconCoordinates => _beaconCoordinates;
+  Map<String, dynamic> get recommendedItems => _recommendedItems;
 
-  void addOrUpdateAisle(String name, Point coordinates, ) {
+  void addOrUpdateAisle(
+    String name,
+    Point coordinates,
+  ) {
     int index = _aisleCoordinates.indexWhere((aisle) => aisle.name == name);
     if (index != -1) {
       _aisleCoordinates[index].coordinates = coordinates;
@@ -35,14 +40,14 @@ class Global extends ChangeNotifier {
     notifyListeners();
     printVisibleAisles();
   }
+
   void printVisibleAisles() {
-  for (var aisle in _aisleCoordinates) {
-    if (aisle.visible) {
-      print(aisle);
+    for (var aisle in _aisleCoordinates) {
+      if (aisle.visible) {
+        print(aisle);
+      }
     }
   }
-}
-
 
   List<Map<String, String>> getProductsBySection(String sectionId) {
     return productList.entries
@@ -204,12 +209,40 @@ class Global extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> getRecommandationItem() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    String? email = prefs.getString('email');
+    String url = Settings.instance.getRecommandationUrl(email!);
+    print(url);
+
+    final Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: requestHeaders);
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = jsonDecode(response.body);
+        _recommendedItems = data;
+        notifyListeners();
+        print(_recommendedItems);
+      } else {
+        print("Failed to fetch data. Status code: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error occurred while fetching data: $error");
+    }
+  }
+
   Future<void> loadData() async {
     if (!dataLoaded) {
       await getAislesFromTXT();
       await getProducts();
       await getSections();
       await getBeacons();
+      await getRecommandationItem();
       dataLoaded = true;
     }
   }
