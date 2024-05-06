@@ -23,13 +23,13 @@ class Global extends ChangeNotifier {
   Map<String, String> get sectionList => _sectionList;
   Map<String, Point> get beaconCoordinates => _beaconCoordinates;
 
-  void addOrUpdateAisle(String name, Point coordinates, {bool visible = false}) {
+  void addOrUpdateAisle(String name, Point coordinates, ) {
     int index = _aisleCoordinates.indexWhere((aisle) => aisle.name == name);
     if (index != -1) {
       _aisleCoordinates[index].coordinates = coordinates;
-      _aisleCoordinates[index].visible = visible;
+      _aisleCoordinates[index].visible = true;
     } else {
-      _aisleCoordinates.add(Aisle(name, coordinates, visible: visible));
+      _aisleCoordinates.add(Aisle(name, coordinates, visible: true));
       _uniqueAisles.add(name);
     }
     notifyListeners();
